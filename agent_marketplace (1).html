@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Agent Marketplace</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --teal:#06C7CC;--teal-d:#0AA8AC;--teal-bg:#E8FAFA;
+  --navy:#000048;--indigo:#2E308E;--blue:#2F78C4;--purple:#7373D8;
+  --white:#fff;--bg:#F2F5F9;--card:#fff;
+  --border:#DDE3ED;--text:#1A1A3A;--muted:#64748B;--light:#F8FAFC;
+  --green:#1D9E5C;--amber:#D97706;--red:#DC2626;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* HEADER */
+header{background:var(--navy);height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 32px}
+.logo-text{font-size:14px;font-weight:600;color:#fff;letter-spacing:.01em}
+.phase-pill{font-size:11px;font-weight:500;color:var(--teal);background:rgba(6,199,204,.12);border:1px solid rgba(6,199,204,.25);padding:4px 12px;border-radius:20px}
+
+/* MAIN */
+main{max-width:1200px;margin:0 auto;padding:32px 28px}
+
+/* PAGE TITLE */
+.page-title{font-size:22px;font-weight:700;color:var(--navy);margin-bottom:4px}
+.page-sub{font-size:13px;color:var(--muted);margin-bottom:24px}
+
+/* TABS */
+.tab-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;border-bottom:1.5px solid var(--border);padding-bottom:0}
+.tabs{display:flex;gap:0}
+.tab{padding:10px 20px;font-size:13.5px;font-weight:600;color:var(--muted);cursor:pointer;border:none;background:none;font-family:'DM Sans',sans-serif;border-bottom:2.5px solid transparent;margin-bottom:-1.5px;transition:all .15s}
+.tab:hover{color:var(--navy)}
+.tab.active{color:var(--navy);border-bottom-color:var(--teal)}
+.tab-count{font-size:11px;font-weight:500;background:var(--bg);padding:1px 7px;border-radius:10px;margin-left:6px;color:var(--muted);font-family:'DM Mono',monospace}
+.tab.active .tab-count{background:var(--teal-bg);color:var(--teal-d)}
+
+/* FILTER CHIPS */
+.filter-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px}
+.chip{padding:5px 14px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:1.5px solid var(--border);background:var(--white);color:var(--muted);font-family:'DM Sans',sans-serif;transition:all .15s}
+.chip:hover{border-color:var(--teal-d);color:var(--teal-d)}
+.chip.active{background:var(--navy);border-color:var(--navy);color:#fff}
+
+/* GRID */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(195px,1fr));gap:10px}
+
+/* CARD */
+.card{background:var(--card);border:1.5px solid var(--border);border-radius:10px;padding:16px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;animation:up .3s ease both}
+@keyframes up{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.card:hover{box-shadow:0 6px 24px rgba(0,0,72,.1);border-color:var(--teal);transform:translateY(-2px)}
+.card-bar{position:absolute;top:0;left:0;right:0;height:3px;border-radius:10px 10px 0 0}
+.card-name{font-size:13px;font-weight:700;color:var(--navy);line-height:1.35;margin-bottom:5px;margin-top:4px}
+.card-desc{font-size:11.5px;color:var(--muted);line-height:1.55;margin-bottom:12px}
+.card-foot{display:flex;align-items:center;justify-content:space-between}
+.tags{display:flex;gap:4px;flex-wrap:wrap}
+.tag{font-size:9.5px;font-weight:600;padding:2px 8px;border-radius:8px;letter-spacing:.03em;text-transform:uppercase}
+.t-active{background:#DCFCE7;color:#166534}
+.t-planned{background:#F1F5F9;color:var(--muted)}
+.t-exploring{background:#FFF7ED;color:#92400E}
+.t-pipeline{background:#EEF3FB;color:var(--indigo)}
+.t-shared{background:var(--teal-bg);color:var(--teal-d)}
+.tag-plain{font-size:9.5px;font-weight:500;padding:2px 7px;border-radius:7px;background:var(--bg);color:var(--muted);border:1px solid var(--border)}
+.card-arrow{font-size:13px;color:var(--border);font-weight:300;transition:color .15s}
+.card:hover .card-arrow{color:var(--teal)}
+
+/* DRAWER */
+.overlay{position:fixed;inset:0;background:rgba(0,0,48,.45);backdrop-filter:blur(2px);z-index:100;opacity:0;pointer-events:none;transition:opacity .2s;display:flex;justify-content:flex-end}
+.overlay.open{opacity:1;pointer-events:all}
+.drawer{width:420px;height:100vh;background:var(--white);overflow-y:auto;transform:translateX(20px);transition:transform .22s cubic-bezier(.4,0,.2,1);box-shadow:-4px 0 28px rgba(0,0,48,.15);display:flex;flex-direction:column}
+.drawer::-webkit-scrollbar{width:4px}
+.drawer::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+.overlay.open .drawer{transform:translateX(0)}
+
+.d-header{padding:20px 22px 16px;border-bottom:1px solid var(--border)}
+.d-close{float:right;width:26px;height:26px;border-radius:6px;background:var(--bg);border:none;cursor:pointer;font-size:13px;color:var(--muted);display:flex;align-items:center;justify-content:center;transition:all .15s}
+.d-close:hover{background:#FFE5E5;color:var(--red)}
+.d-type{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;display:block}
+.d-title{font-size:17px;font-weight:700;color:var(--navy);line-height:1.35;margin-bottom:8px}
+.d-desc{font-size:12.5px;color:var(--muted);line-height:1.65}
+
+.d-body{padding:18px 22px 32px;flex:1}
+.d-sec{margin-bottom:20px}
+.d-label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px}
+
+/* IO */
+.io-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px}
+.io-box{background:var(--light);border:1.5px solid var(--border);border-radius:8px;padding:12px}
+.io-box-label{font-size:9.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+.io-item{font-size:11.5px;color:var(--text);line-height:1.45;padding:2px 0;border-left:2px solid var(--border);padding-left:8px;margin-top:5px}
+.io-item.in{border-color:var(--indigo)}
+.io-item.out{border-color:var(--green)}
+
+/* Steps */
+.steps{display:flex;flex-direction:column;gap:0}
+.step{display:flex;gap:10px;padding:10px 0}
+.step-n{width:22px;height:22px;border-radius:50%;background:var(--navy);color:#fff;font-size:9.5px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:'DM Mono',monospace;margin-top:1px}
+.step-n.sp{background:linear-gradient(135deg,var(--teal-d),var(--indigo))}
+.step-name{font-size:12.5px;font-weight:600;color:var(--navy);margin-bottom:2px}
+.step-desc{font-size:11.5px;color:var(--muted);line-height:1.5}
+.step+.step{border-top:1px solid var(--border)}
+
+/* UC agents list */
+.uc-agents{display:flex;flex-direction:column;gap:5px}
+.uca{display:flex;align-items:flex-start;gap:9px;padding:10px 12px;background:var(--light);border:1.5px solid var(--border);border-radius:8px;cursor:pointer;transition:all .15s}
+.uca:hover{border-color:var(--teal);background:var(--teal-bg)}
+.uca-num{width:20px;height:20px;border-radius:50%;color:#fff;font-size:9.5px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:'DM Mono',monospace;margin-top:1px}
+.uca-name{font-size:12.5px;font-weight:600;color:var(--navy);margin-bottom:1px}
+.uca-sd{font-size:11px;color:var(--muted);line-height:1.4}
+.uca-arrow{margin-left:auto;font-size:13px;color:var(--border);align-self:center}
+.uca:hover .uca-arrow{color:var(--teal)}
+
+/* Used-in chips */
+.used-chips{display:flex;gap:5px;flex-wrap:wrap}
+.used-chip{padding:5px 12px;border-radius:16px;font-size:12px;font-weight:500;background:var(--light);border:1.5px solid var(--border);color:var(--text);cursor:pointer;transition:all .15s}
+.used-chip:hover{border-color:var(--teal);color:var(--teal-d);background:var(--teal-bg)}
+
+/* Output highlight box */
+.out-box{background:var(--light);border:1.5px solid var(--border);border-radius:8px;padding:12px 14px;font-size:12.5px;color:var(--text);line-height:1.6}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-text">AI Agent Marketplace</div>
+  <div class="phase-pill">Phase 1 · In Progress</div>
+</header>
+
+<main>
+  <div class="page-title" id="cTitle">Activities &amp; Use Cases</div>
+  <div class="page-sub" id="cSub">7 use cases &middot; GenC AI Council</div>
+
+  <div class="tab-row">
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('activities',this)">Activities <span class="tab-count" id="tcAct">7</span></button>
+      <button class="tab" onclick="switchTab('agents',this)">Agents <span class="tab-count" id="tcAg">18 confirmed</span></button>
+    </div>
+  </div>
+
+  <div class="filter-row" id="filterRow"></div>
+  <div class="grid" id="grid"></div>
+</main>
+
+<!-- DRAWER -->
+<div class="overlay" id="overlay" onclick="maybeClose(event)">
+  <div class="drawer" id="drawer">
+    <div class="d-header">
+      <button class="d-close" onclick="closeDrawer()">&#x2715;</button>
+      <span class="d-type" id="dType"></span>
+      <div class="d-title" id="dTitle"></div>
+      <div class="d-desc" id="dDesc"></div>
+    </div>
+    <div class="d-body" id="dBody"></div>
+  </div>
+</div>
+
+<script>
+const UC=[
+  {id:'tc-gen',g:'p1',color:'#2E308E',name:'Requirement to Test Case Generation',
+   sd:'Every time a Change Request is raised in JIRA, a QA engineer has to read it, understand the scope, and manually write test cases from scratch. This use case automates that entire process.',
+   status:'active',
+   tagline:'When a developer raises a Change Request describing a new feature or a system change, a QA engineer must read through it, understand what needs to be tested, look at how similar things were tested in the past, write out every test scenario step by step, get it reviewed by a senior designer, and then format it into the team\'s standard Excel template. This whole process takes between one and seven days per CR, depending on the complexity. This pipeline does all of that automatically. The agent reads the CR, understands what changed, looks up how the team has tested similar things before, drafts the test cases in the same format and style the designer prefers, puts it through a quality check, presents it to the designer for a final look, and produces the finished Excel file — ready to hand to the testing team.',
+   agents:['master-orch','pipeline-orch','jira-connector','cr-summarizer','rag-retrieval','designer-memory','tc-generator','quality-reviewer','designer-feedback','parser-formatter'],
+   out:'A structured Excel file containing all test cases for the Change Request, each with a test ID, module, scenario description, step-by-step test steps, expected result, priority level, and test type.',
+   shared:['jira-connector','master-orch','pipeline-orch']},
+
+  {id:'td-gen',g:'p2',color:'#0AA8AC',name:'Test Data Generation',
+   sd:'Once test cases exist, a QA engineer still needs to find or create the actual data to run those tests — account numbers, SIM references, port numbers, credentials. This use case does that automatically.',
+   status:'planned',
+   tagline:'A test case describes what to test and what steps to follow. But to actually run a test, you also need real data — a valid customer account number, a working MSISDN, a specific port number, dealer credentials. Today, a QA engineer has to either look these up manually in the backend systems or walk through the full customer creation flow on the DSP platform to generate them. This can take ten to fifteen minutes per test case. This pipeline reads the test case Excel produced by Pipeline 1, figures out what data each test case requires, queries the correct backend system to fetch real, valid values, creates the necessary customer records or account configurations where needed, confirms that the data is working, and writes all of it back into the same Excel file next to the corresponding test cases. The result is a single file that has both the test cases and the data needed to execute them.',
+   agents:['tc-reader','db-lookup','xml-builder','eai-push','data-validator','data-writer'],
+   out:'The same Excel file from Pipeline 1, now with all required test data filled in — account numbers, SIM references, port numbers, credentials, and order IDs — one row per test case, ready for a tester to execute immediately.',
+   shared:['pipeline-orch']},
+
+  {id:'auto-scripts',g:'p3',color:'#7373D8',name:'Automation Script Generation',
+   sd:'For test cases that can be run by a machine rather than a human, this use case writes the automation code automatically — removing the need for an engineer to manually author Robot Framework scripts.',
+   status:'planned',
+   tagline:'Not every test case needs a human to run it. Many tests follow a predictable sequence of steps — open this screen, enter this value, click this button, check this result — which a script can repeat reliably hundreds of times without error or fatigue. Writing those scripts manually is time-consuming and requires a skilled automation engineer. This pipeline reads the completed test case and test data Excel from Pipeline 2, goes through each test case and decides whether it can realistically be automated, and then writes the Robot Framework script for every one that can. The scripts are written in small focused batches to maintain quality, each is checked for correctness, each is linked back to its test case ID in the Excel, and everything is packaged together into a single deliverable. Test cases that genuinely need a human — for example, ones requiring physical SIM insertion or visual UI judgment — are flagged clearly as manual.',
+   agents:['automability-checker','script-generator','syntax-validator','script-linker','output-packager'],
+   out:'A set of Robot Framework automation script files, one for each automatable test case, plus the final Excel file updated with a reference to each script. Everything packaged together and ready for the automation team to run.',
+   shared:['pipeline-orch','output-packager']},
+
+  {id:'dsr',g:'dsr',color:'#1D9E5C',name:'Automating DSR Reports',
+   sd:'Every working day, the team produces a Daily Status Report showing what was completed, what is in progress, and what is pending. This is currently done manually by pulling data from JIRA and filling in a PowerPoint template. This use case automates the entire process.',
+   status:'pipeline',
+   tagline:'At the end of each day, someone on the team opens JIRA, reviews the current state of all tickets and Change Requests, works out what moved forward since yesterday, writes a summary paragraph, opens the DSR PowerPoint template, fills in the date and the status numbers, types in the summary, saves it, and emails it to the management chain. This is repeated every single working day. This pipeline replaces that entire routine. It connects to JIRA, pulls the current state of all tracked items, compares it against what the state was at the end of the previous day, calculates what changed — how many CRs moved to a new stage, how many defects were raised, what is currently blocked — writes the summary in plain English, opens the DSR PowerPoint template and fills in all the details, and sends the completed report by email to the distribution list. The whole process runs automatically at a configured time each day.',
+   agents:['jira-puller','delta-calc','dsr-narrative','ppt-builder','email-dispatch'],
+   out:'A completed Daily Status Report PowerPoint file with the current date, updated ticket counts, progress summary, and any highlights — sent automatically to the management distribution list.',
+   shared:['jira-puller','ppt-builder','email-dispatch']},
+
+  {id:'mom',g:'mom',color:'#DC2626',name:'Auto Generation of Minutes of Meeting',
+   sd:'After every team meeting, someone has to write up the minutes — who attended, what was discussed, what decisions were made, and who is responsible for what. This use case does that automatically from a recording or from rough notes.',
+   status:'pipeline',
+   tagline:'After a meeting, the organiser or a designated team member has to sit down and write the minutes from memory or from quick notes taken during the call. They need to remember or re-listen to what decisions were made, who owns each action item, and what questions were left open. Then they format it into the standard minutes template and email it to everyone who attended. This pipeline handles all of that. If someone records the meeting audio, the agent converts the speech to text. It then identifies who said what based on the list of attendees. It reads through the transcript and extracts the key content — agenda items covered, decisions taken, each action item with its owner and due date, and any open questions not yet resolved. It formats everything into the standard minutes-of-meeting layout and shares the draft with the meeting organiser for a quick check. Once confirmed, it sends the final minutes to all attendees by email.',
+   agents:['audio-ingestion','transcription','speaker-id','mom-extractor','mom-formatter','mom-review'],
+   out:'A formatted minutes-of-meeting document covering attendees, a summary of each agenda item discussed, a list of decisions made, an action items table showing owner, task, and due date for each item, and any open questions — sent to all meeting attendees.',
+   shared:['email-dispatch','mom-review']},
+
+  {id:'sprint',g:'sprint',color:'#2F78C4',name:'JIRA Sprint and Ticket Analysis',
+   sd:'At the end of each sprint, the team needs to understand how the sprint went — how much was completed versus planned, what got stuck, and whether there are patterns worth addressing. This use case generates that analysis automatically.',
+   status:'exploring',
+   tagline:'Sprint reviews and retrospectives require someone to pull data from JIRA, calculate how many story points were completed versus what was planned, identify which tickets were delayed and for how long, and spot whether the same types of issues keep coming up sprint after sprint. Doing this manually takes time and often gets skipped or done superficially. This pipeline pulls sprint data from JIRA covering the current and previous sprints, calculates the team\'s velocity and whether it is trending up or down, identifies every ticket that sat in progress for longer than expected, looks across multiple sprints to find recurring patterns — modules that always run late, ticket types that consistently overrun, team members who are carrying a disproportionate load — and produces a clear, readable report with charts and a set of plain-English findings that can be discussed in the sprint review without anyone needing to prepare slides in advance.',
+   agents:['sprint-fetcher','velocity-analyser','blocker-detector','pattern-agent','insight-summariser','report-gen'],
+   out:'A sprint analysis report showing velocity over recent sprints, a list of tickets that were delayed with the cause and owner, recurring patterns identified across sprints, and five to eight plain-English findings ready for a sprint review discussion.',
+   shared:['jira-puller','report-gen','ppt-builder']},
+
+  {id:'defect',g:'defect',color:'#9333EA',name:'JIRA Defect Identification',
+   sd:'When defects are raised in JIRA, understanding where they came from, why they happened, and what else might be affected requires investigation. This use case automates that investigation process.',
+   status:'exploring',
+   tagline:'When a defect or Production Defect Incident is raised, a QA engineer needs to read through the ticket, work out the most likely root cause, trace it back to the Change Request that probably introduced the problem, assess which other parts of the system might be affected, and decide which test cases need to be re-run as a result. Across a release cycle with many defects, this analysis takes significant time and is often done under pressure. This pipeline reads all defect tickets for the configured scope, classifies the root cause of each one — whether it was a gap in the requirements, a coding error, an environment configuration issue, or a test data problem — identifies which Change Request most likely introduced each defect, maps out which other modules share the affected code area and could also be impacted, and looks across all the defects together to surface recurring patterns. If the same type of defect keeps appearing from a particular module or type of change, that pattern is highlighted so the team can address the underlying cause rather than fixing individual instances repeatedly.',
+   agents:['defect-fetcher','rca-classifier','cr-linker','impact-assessor','trend-analyser','defect-report'],
+   out:'A defect analysis report with each defect classified by root cause, linked to its source Change Request, mapped against affected modules and test cases to re-verify, and a trend section showing which root cause types and source areas are recurring across the release cycle.',
+   shared:['jira-puller','report-gen','rca-classifier']},
+];
+
+const AG=[
+  {id:'master-orch',g:'core',color:'#D97706',name:'Master Orchestrator',
+   sd:'The central coordinator that receives every incoming piece of work, decides what needs to happen, and directs the right agents to handle it.',
+   tagline:'Think of this as the project manager for the entire AI system. Every time a Change Request is raised in JIRA, this agent is the first to see it. It reads the request, determines what work needs to be done — does this require test cases to be written? Does it also need test data? Should automation scripts be generated? — and then activates the correct pipelines in the right order. It monitors the progress of every pipeline running underneath it, and if something fails or gets stuck, it decides whether to retry or escalate to a human. Nothing in the system starts without going through the Master Orchestrator first.',
+   inp:['Incoming JIRA Change Request'],out:['Work orders to each pipeline','Live status of all running pipelines'],
+   steps:[{n:'1',name:'Detect incoming work',desc:'Reads new or updated Change Requests from JIRA as they arrive.'},{n:'2',name:'Decide what is needed',desc:'Determines which combination of pipelines to run — test cases only, test data too, automation scripts, or all three.'},{n:'3',name:'Route to the correct pipelines',desc:'Activates the relevant pipelines in the correct sequence, passing each one the information it needs.'},{n:'4',name:'Monitor until complete',desc:'Tracks every pipeline and steps in if any agent fails or a human decision is required.'}],
+   usedIn:['tc-gen','td-gen','auto-scripts','dsr','sprint','defect']},
+  {id:'pipeline-orch',g:'core',color:'#7373D8',name:'Pipeline Orchestrator',
+   sd:'Manages the internal flow of a single pipeline — running each agent in the right order, handling retries, and reporting back when the job is done.',
+   tagline:'While the Master Orchestrator oversees all pipelines at a high level, the Pipeline Orchestrator sits inside each individual pipeline and manages the detail. It runs each agent in the correct sequence, waits for each one to finish before triggering the next, and passes the output of one agent as the input to the next. If the Quality Reviewer rejects a draft, the Pipeline Orchestrator manages the retry — it sends the draft back to the Generator with the specific feedback, waits for the revised output, and puts it back through review. It allows a maximum of two retry rounds before deciding that a human needs to step in. Every use case has its own Pipeline Orchestrator running the agents within it.',
+   inp:['Work order from Master Orchestrator'],out:['Completed pipeline output','Escalation signal if human review is needed'],
+   steps:[{n:'1',name:'Receive the work order',desc:'Gets the task and all necessary inputs from the Master Orchestrator.'},{n:'2',name:'Run each agent in order',desc:'Triggers each agent one at a time, waits for it to complete, and passes the output to the next.'},{n:'3',name:'Manage retries',desc:'If a quality check fails, sends the output back with specific feedback and tries again. Maximum two rounds.'},{n:'4',name:'Report when done',desc:'Tells the Master Orchestrator that the pipeline is complete, or that a human needs to review something.'}],
+   usedIn:['tc-gen','td-gen','auto-scripts','dsr','mom','sprint','defect']},
+  {id:'jira-connector',g:'p1',color:'#2E308E',name:'JIRA Connector Agent',
+   sd:'Connects to JIRA and retrieves every piece of information from a Change Request — the requirements, acceptance criteria, linked tickets, and any attachments.',
+   tagline:'When a Change Request is created in JIRA, it contains everything a developer or analyst wrote about the change — what is being built, what the business rules are, what the acceptance conditions are, what other tickets it is related to. This agent connects to JIRA, pulls all of that content for a given CR number, and converts it from raw JIRA data into a clean, structured format that the next agent can work with. It is the entry point to the entire test case generation pipeline — without this agent retrieving the CR content, no other agent has anything to work from.',
+   inp:['Change Request number','JIRA login credentials'],out:['All CR fields extracted and structured'],
+   steps:[{n:'1',name:'Connect to JIRA',desc:'Authenticates with the JIRA instance.'},{n:'2',name:'Pull all CR fields',desc:'Retrieves the full content — summary, description, requirements, acceptance criteria, linked tickets, and attachments.'},{n:'3',name:'Structure the output',desc:'Converts the raw JIRA response into a clean format ready for the Summarizer Agent.'}],
+   usedIn:['tc-gen']},
+  {id:'cr-summarizer',g:'p1',color:'#2E308E',name:'CR Summarizer Agent',
+   sd:'Reads through the full Change Request and distils it into a focused summary containing only what a test writer needs — the scope, the business rules, and the conditions that require testing.',
+   tagline:'A Change Request is written for developers and project managers, not test designers. It typically contains version history, approval trails, background context, and a lot of content that is not directly relevant to writing test cases. Passing all of that raw content to the generator would lead to unfocused output. This agent reads through everything and extracts only the parts that matter for testing: which parts of the system are changing, what the specific business rules are, what conditions need to be met, what the edge cases are, and what the acceptance criteria say.',
+   inp:['Full CR content from JIRA Connector'],out:['Focused testing summary — scope, impacted modules, business rules, testable conditions, edge cases'],
+   steps:[{n:'1',name:'Read the full CR',desc:'Takes all content retrieved by the JIRA Connector Agent.'},{n:'2',name:'Identify what matters for testing',desc:'Extracts scope, impacted modules, business rules, edge cases, and acceptance criteria.'},{n:'3',name:'Produce a focused summary',desc:'A clear, concise summary containing only the information the Test Case Generator needs.'}],
+   usedIn:['tc-gen']},
+  {id:'rag-retrieval',g:'p1',color:'#2E308E',name:'RAG Retrieval Agent',
+   sd:'Searches through all the test case Excel files the team has written historically, finds the ones most relevant to the current Change Request, and brings them as reference material for the generator.',
+   tagline:'RAG stands for Retrieval-Augmented Generation, which means: before generating something new, go and find the best examples of similar work that already exists and use those as a guide. This agent takes the CR summary and searches through every test case Excel file the team has produced. It looks for test cases written for similar types of changes, similar modules, or similar business scenarios. It selects the most relevant examples — typically five to ten test cases — and passes them to the Test Case Generator alongside the CR summary. This means the generated test cases are shaped by how this specific team has tested similar scenarios in the past, not just by what the AI knows in general.',
+   inp:['CR summary','Library of historical test case Excel files'],out:['The five to ten most relevant past test cases as reference context'],
+   steps:[{n:'1',name:'Understand the CR context',desc:'Reads the CR summary to identify the module, type of change, and business area.'},{n:'2',name:'Search historical test files',desc:'Scans all stored test case Excel files for scenarios matching the current CR context.'},{n:'3',name:'Select the best matches',desc:'Ranks results and selects the most relevant examples.'},{n:'4',name:'Pass everything forward',desc:'Sends the CR summary together with the selected reference test cases to the Generator.'}],
+   usedIn:['tc-gen']},
+  {id:'designer-memory',g:'p1',color:'#0AA8AC',name:'Designer Memory Agent',
+   sd:'Builds and maintains a personal profile for each test designer, learning their preferences and working style over time, so that every test case generated reflects how that specific designer thinks.',
+   tagline:'Two test designers looking at the same Change Request will often produce different test cases — not because one is right and the other wrong, but because each person has developed their own way of thinking about testing. One might always include a negative test for every rule. Another might always group by business flow rather than by module. These preferences are never written down anywhere. This agent maintains a profile for each designer that records their preferences and feedback from past sessions. Before each run it asks a quick question about the current CR. After the designer reviews the output, it captures any new feedback and adds it permanently to their profile.',
+   inp:['Designer profile from previous sessions','Short pre-run conversation with the designer'],out:['Personalised context note for the Generator','Updated designer profile saved for future sessions'],
+   steps:[{n:'1',name:'Load the designer profile',desc:'Retrieves stored preferences and feedback from this designer\'s previous sessions.'},{n:'2',name:'Ask a brief question',desc:'One focused question: is there anything specific to focus on for this Change Request?'},{n:'3',name:'Build the context note',desc:'Combines the stored profile with today\'s input into a context note for the Generator.'},{n:'★',name:'Update after review',desc:'Any new feedback from the designer is captured and added permanently to their profile.',sp:true}],
+   usedIn:['tc-gen']},
+  {id:'tc-generator',g:'p1',color:'#2E308E',name:'Test Case Generator Agent',
+   sd:'Writes the actual test cases — drawing on the CR summary, the historical examples retrieved, and the designer\'s known preferences — and produces a complete draft set ready for quality review.',
+   tagline:'This is the agent that does the writing. By the time it runs, it has everything it needs: the CR summary telling it what changed and what the rules are, a set of historical test cases showing how this team writes for similar scenarios, and a note from the Designer Memory Agent on the particular designer\'s preferences. It uses all of that together to draft a complete set of test cases. To maintain quality, it generates fifteen to twenty test cases at a time rather than all at once. Each test case includes a unique ID, the module it covers, a scenario description, the step-by-step test steps, the expected result, the priority level, and the test type.',
+   inp:['CR summary','Reference test cases from RAG Retrieval','Designer preferences from Designer Memory Agent'],out:['A draft set of test cases — ID, module, scenario, steps, expected result, priority, test type'],
+   steps:[{n:'1',name:'Gather all inputs',desc:'Brings together the CR summary, historical references, and designer preferences.'},{n:'2',name:'Write test cases in batches',desc:'Fifteen to twenty at a time for consistent quality. Each includes ID, module, scenario, steps, expected result, priority, and test type.'},{n:'3',name:'Check for obvious gaps',desc:'Reviews the draft for missing scenarios before sending for formal review.'},{n:'4',name:'Send to Quality Reviewer',desc:'Passes the complete draft to the Quality Reviewer Agent.'}],
+   usedIn:['tc-gen']},
+  {id:'quality-reviewer',g:'p1',color:'#2E308E',name:'Quality Reviewer Agent',
+   sd:'Checks the drafted test cases against the quality of historical work and the designer\'s preferences — approving them or sending them back with precise notes on what to improve.',
+   tagline:'Generating test cases is one thing. Making sure they are good is another. This agent compares the draft against two references: the historical test cases that represent the quality standard the team has achieved on similar work, and the designer\'s profile. It checks whether all requirements from the CR are covered, whether edge cases are included, whether the structure matches the designer\'s style, and whether the level of detail is consistent. If everything looks good, it approves the draft. If something is weak — a requirement uncovered, steps too vague, edge cases missing — it writes specific notes on exactly what needs to be improved and sends the draft back. Maximum two rounds before escalating to a human.',
+   inp:['Draft test cases','Historical test cases as benchmark','Designer preferences'],out:['Approved draft passed forward, or specific refinement notes sent back to Generator'],
+   steps:[{n:'1',name:'Load quality benchmarks',desc:'Retrieves historical test cases to understand the expected quality standard.'},{n:'2',name:'Check coverage and structure',desc:'Verifies all requirements are tested, edge cases are included, and style matches designer preferences.'},{n:'3',name:'Approve or request refinement',desc:'Approves if quality is sufficient. If not, writes specific improvement notes and returns to Generator. Maximum two rounds.'},{n:'4',name:'Escalate if unresolved',desc:'After two rounds with insufficient quality, flags for human review.'}],
+   usedIn:['tc-gen']},
+  {id:'designer-feedback',g:'p1',color:'#0AA8AC',name:'Designer Feedback Agent',
+   sd:'Presents the quality-approved test cases to the test designer for a final review, collects their feedback, and records anything new they say so the system improves for next time.',
+   tagline:'The AI can only do so much on its own. There will always be context only an experienced test designer holds — knowledge of a known system quirk, awareness of a past production issue, an understanding of what the business stakeholder actually cares about. This agent makes sure that knowledge gets captured. It presents the approved test case draft to the designer and has a short conversation: does this look right? Is anything missing? The designer\'s response is used to adjust the test cases if needed. More importantly, anything specific the designer shares is saved permanently into their profile so future runs are better informed.',
+   inp:['Quality-approved draft test cases'],out:['Test cases with designer sign-off','Updated designer profile with new feedback'],
+   steps:[{n:'1',name:'Present the draft to the designer',desc:'Shows the approved test cases to the designer in a readable format.'},{n:'2',name:'Collect feedback',desc:'Asks: does this cover everything? Is there anything to add or adjust?'},{n:'3',name:'Save new insights',desc:'Any new preferences or corrections are saved permanently to the designer\'s profile.'},{n:'4',name:'Confirm and pass forward',desc:'Designer confirms the output is ready and the test cases move to the Formatter.'}],
+   usedIn:['tc-gen']},
+  {id:'parser-formatter',g:'p1',color:'#2E308E',name:'Parser and Formatter Agent',
+   sd:'Takes the signed-off test cases and produces a properly formatted Excel file with all the correct columns, IDs, and structure — ready to hand directly to the testing team.',
+   tagline:'After the designer has reviewed and approved the test cases, this agent produces the final deliverable in the format the team uses. It maps the confirmed content precisely into the standard Excel structure — Test ID, Module, Scenario Description, Test Steps, Expected Result, Priority, Test Type, and Mapped Requirement — each in its correct column. The result is an Excel file that looks exactly like what the team would have produced manually, ready to be used in test execution or passed to Pipeline 2 for test data generation.',
+   inp:['Designer-approved test cases'],out:['Fully formatted output Excel file — all columns, ready for use or for Pipeline 2'],
+   steps:[{n:'1',name:'Receive approved test cases',desc:'Takes the confirmed content from the Designer Feedback Agent.'},{n:'2',name:'Map to the Excel structure',desc:'Assigns content to each column: Test ID, Module, Scenario, Steps, Expected Result, Priority, Type, Requirement.'},{n:'3',name:'Generate and save the file',desc:'Produces the final clean Excel file ready for the testing team or Pipeline 2.'}],
+   usedIn:['tc-gen']},
+  {id:'tc-reader',g:'p2',color:'#0AA8AC',name:'Test Case Reader Agent',
+   sd:'Opens the test case Excel file and works out exactly what data each test case requires in order to be executed.',
+   tagline:'A test case tells you what to test and how. But to actually run it, you need the data to go with it — a specific account number, a valid MSISDN, a working port number, credentials. This agent reads every test case and for each one determines what data fields are needed. It builds a structured list: this test case needs an MSISDN and a SIM reference; that one needs a prepaid account with a specific plan; another needs a dealer code and a contract type. This list becomes the input for the DB Lookup Agent which goes and fetches the actual values.',
+   inp:['Test case Excel file from Pipeline 1'],out:['Data requirements list — for each test case, the specific fields needed to execute it'],
+   steps:[{n:'1',name:'Open the test case Excel',desc:'Reads all rows from the Pipeline 1 output file.'},{n:'2',name:'Identify data requirements per test case',desc:'Determines which data fields are needed for each test case.'},{n:'3',name:'Produce the requirements list',desc:'A structured list mapping each test case to its data needs, passed to the DB Lookup Agent.'}],
+   usedIn:['td-gen']},
+  {id:'db-lookup',g:'p2',color:'#0AA8AC',name:'DB Lookup Agent',
+   sd:'Connects to the backend systems — BSCS, CRM, and ODS — and retrieves real, valid data values for each test case based on the requirements list.',
+   tagline:'This is where the test data comes from — not invented or estimated, but pulled from the actual systems the testing will run against. The agent receives the list of data requirements and queries the appropriate backend system for each field. MSISDN numbers come from the telecom inventory. SIM reference numbers are retrieved from the SIM management database. Port numbers, dealer codes, account configurations — each comes from the system that actually holds that data. Using real values means the test accounts will behave exactly as genuine customer accounts do, giving the QA team confidence that tests reflect actual conditions.',
+   inp:['Data requirements list from Test Case Reader'],out:['Real data values — MSISDN numbers, SIM references, port codes, dealer IDs, account details'],
+   steps:[{n:'1',name:'Receive the requirements list',desc:'Gets the list of what data each test case needs.'},{n:'2',name:'Query the correct system',desc:'Connects to BSCS, CRM, or ODS depending on the data type needed and runs the appropriate query.'},{n:'3',name:'Return the values',desc:'Passes real, validated data values to the XML Builder Agent.'}],
+   usedIn:['td-gen']},
+  {id:'xml-builder',g:'p2',color:'#0AA8AC',name:'XML Builder Agent',
+   sd:'Assembles the XML message that the order management system expects, combining the test case details with the live data values fetched from the backend.',
+   tagline:'To create a test customer account in the system, you need to submit a specific XML message — the CreateFixedLineOrder request — which contains all the account details in exactly the right structure and format. This is the same message the customer-facing platform generates when a customer is signed up through the normal interface. This agent takes the test case details and the real data values from the DB Lookup Agent and builds that XML message precisely — every field in the right place, in the right format, with the right values.',
+   inp:['Test case details','Live data values from DB Lookup Agent'],out:['A complete CreateFixedLineOrder XML payload for each test case'],
+   steps:[{n:'1',name:'Receive inputs',desc:'Test case details and real data values from the DB Lookup Agent.'},{n:'2',name:'Assemble the XML',desc:'Builds the CreateFixedLineOrder message with all fields correctly populated.'},{n:'3',name:'Pass to EAI Push Agent',desc:'Completed payload handed to the agent that will submit it.'}],
+   usedIn:['td-gen']},
+  {id:'eai-push',g:'p2',color:'#0AA8AC',name:'EAI Push Agent',
+   sd:'Submits the XML payload to the order management endpoint and captures the response — the order number, account code, and request ID confirming the test account was created.',
+   tagline:'This agent is the one that actually creates the test account in the system. It takes the completed XML payload and sends it to the EAI endpoint — the same API the production system uses to process customer orders. The system processes the request and responds with either a success confirmation containing the new order number, account code, and request ID, or an error message. The agent captures the full response and passes it to the Validator Agent to check whether everything worked correctly.',
+   inp:['CreateFixedLineOrder XML payload'],out:['EAI system response — order ID, request ID, and account code on success; error details on failure'],
+   steps:[{n:'1',name:'Submit to EAI endpoint',desc:'Sends the XML payload to the configured order management API.'},{n:'2',name:'Capture the response',desc:'Records the full system response — order number, request ID, account code, or error message.'},{n:'3',name:'Pass to Data Validator',desc:'Sends the response to the Validator Agent to check the outcome.'}],
+   usedIn:['td-gen']},
+  {id:'data-validator',g:'p2',color:'#0AA8AC',name:'Data Validator Agent',
+   sd:'Checks whether the system accepted the request successfully — and if not, identifies different data to use and tries again.',
+   tagline:'Not every submission will succeed on the first attempt. An MSISDN might already be in use. A port number might be temporarily unavailable. This agent checks the response from the EAI Push Agent and determines whether the account was created successfully. If it was, the data is confirmed and moves forward. If the submission was rejected, this agent does not simply report failure — it goes back to the DB Lookup Agent with a request for alternative values, and the cycle runs again. Only data that has been verified through a successful system response is written into the final output.',
+   inp:['EAI response from Push Agent'],out:['Confirmed valid data on success, or a request for alternative values if the submission failed'],
+   steps:[{n:'1',name:'Check the system response',desc:'Was a valid order number and account code returned?'},{n:'2',name:'Retry with different data if needed',desc:'If the submission was rejected, requests alternative values from DB Lookup and tries again.'},{n:'3',name:'Confirm the data',desc:'Once a successful response is received, marks the data as validated and ready to write.'}],
+   usedIn:['td-gen']},
+  {id:'data-writer',g:'p2',color:'#0AA8AC',name:'Data Writer Agent',
+   sd:'Takes all the confirmed test data and writes it into the correct cells of the test case Excel file, producing the complete output with both test cases and the data to run them.',
+   tagline:'Every test case has now been through the data generation process and has a set of confirmed, working values assigned to it. This agent opens the Excel file from Pipeline 1 and writes each data value into the correct row and column. The MSISDN goes next to the test case that needs it. The order number is recorded in the relevant column. When this agent finishes, the file contains a complete set of test cases and all the data a tester needs to execute each one immediately.',
+   inp:['Confirmed data values','Test case Excel from Pipeline 1'],out:['Complete output Excel — all test cases with all test data filled in and ready to execute'],
+   steps:[{n:'1',name:'Open the test case Excel',desc:'Loads the file produced by Pipeline 1.'},{n:'2',name:'Write data to each row',desc:'Inserts each validated value into the correct column of the corresponding test case row.'},{n:'3',name:'Save the complete file',desc:'The final Excel with all test cases and test data, ready for use or Pipeline 3.'}],
+   usedIn:['td-gen']},
+  {id:'automability-checker',g:'p3',color:'#7373D8',name:'Automability Checker Agent',
+   sd:'Reads through each test case and determines whether it is suitable for automation, requires a human to run it, or can be partially automated.',
+   tagline:'Not all test cases should be turned into automation scripts. Some require a human to make a visual judgment. Some depend on physical hardware or real-world timing that a script cannot replicate. Writing automation code for these would waste engineering time and produce unreliable scripts. This agent reads each test case, looks at the steps involved, and decides: can these steps be reliably executed by a Robot Framework script? If yes, it is marked for automation. If no, it is flagged as requiring manual execution. If parts of it can be automated but not all, it is marked as partial.',
+   inp:['Complete test case Excel from Pipeline 2'],out:['The same Excel with each test case labelled Automatable, Manual, or Partial'],
+   steps:[{n:'1',name:'Read each test case',desc:'Goes through every row in the Excel file.'},{n:'2',name:'Assess the steps',desc:'Determines whether the steps can be replicated reliably by a script.'},{n:'3',name:'Label each row',desc:'Marks each test case Automatable, Manual, or Partial.'}],
+   usedIn:['auto-scripts']},
+  {id:'script-generator',g:'p3',color:'#7373D8',name:'Script Generator Agent',
+   sd:'Writes Robot Framework automation scripts for every automatable test case, working through them in focused batches of five to maintain quality.',
+   tagline:'For every test case labelled as automatable, this agent writes a complete Robot Framework script — the file a test runner would execute to carry out that test. The script references the test data from the Excel file, follows the exact sequence of steps in the test case, and includes the check for the expected result. Scripts are written in batches of five at a time. This deliberate constraint exists because generating too many at once reduces accuracy. Each script is labelled with its test case ID so there is a clear connection between the test case document and the automation code.',
+   inp:['Automatable test cases with test data from Excel'],out:['Robot Framework script files — one complete script per automatable test case'],
+   steps:[{n:'1',name:'Select automatable cases',desc:'Takes only the test cases labelled Automatable or Partial.'},{n:'2',name:'Write scripts in batches of five',desc:'One Robot Framework script per test case, five at a time for consistent quality.'},{n:'3',name:'Pass each batch for validation',desc:'Each completed batch goes to the Syntax Validator before moving to the next.'}],
+   usedIn:['auto-scripts']},
+  {id:'syntax-validator',g:'p3',color:'#7373D8',name:'Syntax Validator Agent',
+   sd:'Reviews every generated script for correctness — proper structure, no missing variables, correct keyword usage, and accurate references to the test data.',
+   tagline:'A script containing an error will not run. A script referencing a variable incorrectly will fail silently or produce a misleading result. This agent checks every script the Generator produces before it moves further. It verifies Robot Framework syntax is correct, all keywords are used properly, any variables referenced are defined and match the data in the Excel file, and the overall structure is sound. Simple errors are corrected automatically. If a script has a problem that cannot be resolved without more context, it is flagged for a human to review.',
+   inp:['Draft Robot Framework scripts from Generator'],out:['Verified error-free scripts, or specific issues flagged for human review'],
+   steps:[{n:'1',name:'Receive each batch of scripts',desc:'Gets the scripts from the Generator Agent.'},{n:'2',name:'Check structure and keywords',desc:'Verifies correct syntax, keyword usage, variable definitions, and test data references.'},{n:'3',name:'Correct or flag issues',desc:'Fixes simple errors automatically. Flags anything more complex for human attention.'}],
+   usedIn:['auto-scripts']},
+  {id:'script-linker',g:'p3',color:'#7373D8',name:'Script Linker Agent',
+   sd:'Updates the Excel file so that every test case row contains a reference to the script file that covers it — creating a traceable link from test case to automation code.',
+   tagline:'Once all scripts are validated, this agent connects them to their corresponding test cases in the Excel. It goes through each script, identifies its test case ID, and adds the script file path as a reference in the correct row. Anyone looking at the Excel can immediately see which test cases have automation scripts and can find the correct file without searching through folders. Full traceability from the original requirement, through the test case, to the automation code.',
+   inp:['Validated scripts','Complete Excel with test cases and data'],out:['Excel updated with script file reference in each automatable test case row'],
+   steps:[{n:'1',name:'Match each script to its test case',desc:'Identifies which test case ID each script corresponds to.'},{n:'2',name:'Update the Excel',desc:'Adds the script file path into the correct row.'}],
+   usedIn:['auto-scripts']},
+  {id:'output-packager',g:'p3',color:'#7373D8',name:'Output Packager Agent',
+   sd:'Collects the final Excel file and all automation scripts, organises them into a clear structure, and produces the single deliverable the QA team takes away.',
+   tagline:'At this point the Excel file has test cases, test data, and script references, and there is a set of Robot Framework files in various locations. This agent gathers everything together, organises the scripts into a sensible folder structure, checks all files are present and correctly named, and packages everything into one output. The QA team receives a single, clearly organised package — the Excel and the scripts — with everything needed to begin test execution immediately.',
+   inp:['Updated Excel with all data and script references','All validated Robot Framework scripts'],out:['A complete organised package — the final Excel plus all automation script files'],
+   steps:[{n:'1',name:'Collect all outputs',desc:'Gathers the final Excel file and all validated script files.'},{n:'2',name:'Organise the structure',desc:'Arranges scripts in a clear folder structure with consistent naming.'},{n:'3',name:'Produce the final package',desc:'One deliverable, ready for the QA team.'}],
+   usedIn:['auto-scripts']},
+  {id:'jira-puller',g:'other',color:'#1D9E5C',name:'JIRA Data Puller Agent',
+   sd:'Connects to JIRA and pulls the current state of all tickets or defects matching a given filter — a shared agent used across DSR Reports, Sprint Analysis, and Defect Identification.',
+   tagline:'Three use cases in this system need data from JIRA: the Daily Status Report needs to know which tickets moved today, Sprint Analysis needs the last few sprints, and Defect Identification needs all defect tickets. Rather than each use case building its own JIRA connection, this single agent handles all JIRA data retrieval and is shared across all three. It connects to JIRA, runs the specified filter, and returns a structured snapshot of all matching tickets with their current state.',
+   inp:['JIRA filter configuration and date range'],out:['A structured snapshot of all matching JIRA tickets'],
+   steps:[{n:'1',name:'Connect to JIRA',desc:'Authenticates with the JIRA instance.'},{n:'2',name:'Execute the filter',desc:'Runs the configured JIRA filter for the relevant use case.'},{n:'3',name:'Return the snapshot',desc:'All matching tickets with statuses, assignees, dates, and descriptions.'}],
+   usedIn:['dsr','sprint','defect']},
+  {id:'delta-calc',g:'other',color:'#1D9E5C',name:'Delta Calculator Agent',
+   sd:'Compares today\'s JIRA data against the previous day\'s snapshot to identify precisely what changed — which tickets moved forward, which were newly raised, which became blocked.',
+   tagline:'The Daily Status Report is not about listing everything in JIRA. It is about what changed today. A stakeholder reading the report wants to know: what moved forward? What new issues came up? What is blocked? This agent takes two snapshots — today\'s data and the snapshot saved the previous day — and compares them. It produces a specific change summary: three CRs moved to a new stage, one defect was raised, two tickets have been in progress for more than five days. This is what gets written into the DSR narrative.',
+   inp:['Today\'s JIRA snapshot','Previous day\'s saved snapshot'],out:['A precise change delta — what moved, what is new, what is delayed, what is blocked'],
+   steps:[{n:'1',name:'Load the previous snapshot',desc:'Reads the data saved at the end of the previous working day.'},{n:'2',name:'Compare ticket by ticket',desc:'Identifies status changes, newly created tickets, newly completed items, tickets that stopped progressing.'},{n:'3',name:'Produce the delta summary',desc:'A specific, factual summary of what changed.'}],
+   usedIn:['dsr']},
+  {id:'dsr-narrative',g:'other',color:'#1D9E5C',name:'DSR Narrative Agent',
+   sd:'Converts the change delta into three to five plain-English sentences describing the day\'s progress — suitable to go directly into the status report.',
+   tagline:'Numbers and data lists do not communicate well in a status report. A manager needs a clear, factual summary they can understand at a glance. This agent takes the change delta and writes a natural-language summary covering the key points. The language is factual and direct: what progressed, what was raised, what needs attention. No interpretation or opinion — just a clear account of what the data shows.',
+   inp:['Change delta from Delta Calculator'],out:['Three to five plain-English sentences summarising the day\'s progress'],
+   steps:[{n:'1',name:'Read the change delta',desc:'Takes the factual change summary from the Delta Calculator.'},{n:'2',name:'Write the narrative',desc:'Produces three to five sentences describing what changed — what progressed, what was raised, what is blocked.'},{n:'3',name:'Pass to PPT Builder',desc:'The narrative is ready to be inserted into the DSR PowerPoint.'}],
+   usedIn:['dsr']},
+  {id:'ppt-builder',g:'other',color:'#1D9E5C',name:'PPT Builder Agent',
+   sd:'Opens the standard DSR PowerPoint template and fills in the current date, ticket status counts, and the written summary — producing a completed presentation ready to send.',
+   tagline:'The team has a fixed PowerPoint template for the Daily Status Report. Each day the same file is opened, the date is updated, the numbers are filled in, and the narrative is typed in. This agent automates that entire process. It opens the template, locates each field that needs filling — date, open ticket count, in-progress count, narrative paragraph — and fills each one with today\'s data. The result is a completed file identical to what the team would have produced manually.',
+   inp:['DSR PowerPoint template','Today\'s counts and narrative'],out:['Completed DSR PowerPoint with today\'s date, status counts, and narrative filled in'],
+   steps:[{n:'1',name:'Open the template',desc:'Loads the standard DSR PowerPoint template.'},{n:'2',name:'Fill in each field',desc:'Inserts today\'s date, ticket status counts, and the narrative into the correct positions.'},{n:'3',name:'Save the completed file',desc:'Saves the finished presentation for the Email Dispatch Agent.'}],
+   usedIn:['dsr','sprint']},
+  {id:'email-dispatch',g:'other',color:'#1D9E5C',name:'Email Dispatch Agent',
+   sd:'Attaches the completed file to an email and sends it to everyone on the distribution list, with the subject line generated automatically.',
+   tagline:'The final step in the DSR and meeting minutes pipelines. This agent takes the completed file — whether the DSR PowerPoint or the formatted meeting minutes — and sends it to the configured recipients. The subject line is generated automatically using the current date and a key headline from the content, so the email is informative rather than generic. The distribution list is configured once and applied consistently.',
+   inp:['Completed report or minutes file','Configured distribution list'],out:['Email sent to all recipients with the file attached and an auto-generated subject line'],
+   steps:[{n:'1',name:'Receive the completed file',desc:'Takes the final file from the preceding agent.'},{n:'2',name:'Generate the subject line',desc:'Creates a descriptive subject including the date and a key headline from the content.'},{n:'3',name:'Send to the distribution list',desc:'Emails the file to all configured recipients.'}],
+   usedIn:['dsr','mom']},
+  {id:'audio-ingestion',g:'other',color:'#DC2626',name:'Audio Ingestion Agent',
+   sd:'Accepts a recorded meeting audio file or a set of typed notes and routes the input to the correct next agent.',
+   tagline:'The starting point for the meeting minutes pipeline. The team has two options: record the audio during the meeting and provide that file afterwards, or type rough notes during or after the meeting. This agent accepts whichever format is provided. Audio files go to the Transcription Agent. Plain text notes go directly to the MOM Extractor, skipping transcription entirely. This means the pipeline works regardless of how the team captures meeting content.',
+   inp:['Audio recording file or plain text meeting notes'],out:['Input routed to the appropriate next agent'],
+   steps:[{n:'1',name:'Accept the input',desc:'Receives either an audio file or a text document.'},{n:'2',name:'Determine the format',desc:'Checks whether the input is audio or text.'},{n:'3',name:'Route to the correct agent',desc:'Audio goes to Transcription. Text goes directly to MOM Extractor.'}],
+   usedIn:['mom']},
+  {id:'transcription',g:'other',color:'#DC2626',name:'Transcription Agent',
+   sd:'Converts the meeting audio recording into a written transcript of everything that was spoken.',
+   tagline:'This agent listens to the meeting recording and produces a written transcript of everything said, from start to finish. The output is a continuous text document of the spoken meeting content. Speaker labels are not added at this stage — that happens in the next agent. The transcript is then ready for the meeting content to be extracted and structured into minutes.',
+   inp:['Meeting audio recording file'],out:['A complete written transcript of the meeting'],
+   steps:[{n:'1',name:'Load the audio file',desc:'Reads the recorded meeting file.'},{n:'2',name:'Convert speech to text',desc:'Processes the full audio and produces a written transcript of everything said.'},{n:'3',name:'Pass to Speaker Identifier',desc:'The raw transcript is handed to the next agent for speaker labelling.'}],
+   usedIn:['mom']},
+  {id:'speaker-id',g:'other',color:'#DC2626',name:'Speaker Identifier Agent',
+   sd:'Goes through the transcript and adds labels showing who was speaking at each point, using the meeting attendee list as a reference.',
+   tagline:'A raw transcript is a single block of text with no indication of who said what. This agent uses the list of meeting attendees to label each section with the name of the person who was speaking. Where a speaker is clearly identified by name in the conversation, that name is used. Where names are less clear, context clues and the attendee list are used. The result is a labelled transcript that makes the MOM Extractor\'s job of identifying who owns each action item much more accurate.',
+   inp:['Raw transcript','List of meeting attendees'],out:['Transcript with speaker names added at each change of speaker'],
+   steps:[{n:'1',name:'Load the attendee list',desc:'Gets the list of people in the meeting.'},{n:'2',name:'Identify speakers',desc:'Uses name mentions and context to determine who was speaking at each point.'},{n:'3',name:'Label the transcript',desc:'Adds speaker names before each section of speech.'}],
+   usedIn:['mom']},
+  {id:'mom-extractor',g:'other',color:'#DC2626',name:'MOM Extractor Agent',
+   sd:'Reads through the labelled transcript and pulls out all content that belongs in the minutes — who attended, what was discussed, decisions made, actions agreed, and questions left open.',
+   tagline:'This agent turns a conversation into structured meeting minutes. It reads through the full transcript and extracts everything that matters: the list of attendees, topics discussed, specific decisions made, every action item with its owner and due date, and questions that were raised but not resolved. It does not summarise loosely — it identifies and captures specific, concrete outputs from the conversation. The result is structured content the Formatter can lay out in the standard minutes template.',
+   inp:['Speaker-labelled transcript or typed meeting notes'],out:['Structured meeting content — attendees, topics, decisions, action items with owners and due dates, open questions'],
+   steps:[{n:'1',name:'Read the full transcript',desc:'Goes through the complete meeting content.'},{n:'2',name:'Extract structured content',desc:'Identifies: attendees, topics covered, decisions made, action items with owner and due date, unresolved questions.'},{n:'3',name:'Output the structured content',desc:'Passes the organised content to the MOM Formatter Agent.'}],
+   usedIn:['mom']},
+  {id:'mom-formatter',g:'other',color:'#DC2626',name:'MOM Formatter Agent',
+   sd:'Takes the structured meeting content and lays it out in the standard minutes-of-meeting format the team uses.',
+   tagline:'The extracted meeting content is organised but unformatted. This agent applies the standard meeting minutes template — the date and meeting title at the top, a list of attendees, a summary of each agenda item discussed, the decisions, and an action items table where each row shows the responsible person, the task, and the due date. The output is a formatted document that matches the team\'s expected layout, ready for the organiser to review.',
+   inp:['Structured meeting content from MOM Extractor'],out:['Formatted minutes document in the team\'s standard layout, ready for review'],
+   steps:[{n:'1',name:'Apply the template',desc:'Maps the extracted content onto the standard minutes layout.'},{n:'2',name:'Build the action items table',desc:'One row per action item: responsible person, task, and due date.'},{n:'3',name:'Produce the formatted document',desc:'Complete minutes ready for the Review and Send Agent.'}],
+   usedIn:['mom']},
+  {id:'mom-review',g:'other',color:'#DC2626',name:'Review and Send Agent',
+   sd:'Shares the draft minutes with the meeting organiser for a final check, then sends the confirmed minutes to all attendees.',
+   tagline:'Before the minutes go to everyone, the meeting organiser verifies them. This agent sends the formatted draft to the organiser only, awaiting their confirmation. The organiser reviews, makes any corrections, and confirms. Once confirmed, the agent sends the final minutes to all meeting attendees. If no action is taken within a configured time window, a reminder is sent.',
+   inp:['Formatted minutes document'],out:['Meeting minutes sent to all attendees after organiser confirmation'],
+   steps:[{n:'1',name:'Send draft to organiser',desc:'Emails the formatted minutes to the meeting organiser only.'},{n:'2',name:'Wait for confirmation',desc:'Organiser reviews and either confirms or makes corrections.'},{n:'3',name:'Send to all attendees',desc:'Once confirmed, sends the final minutes to everyone who attended.'}],
+   usedIn:['mom']},
+  {id:'sprint-fetcher',g:'other',color:'#2F78C4',name:'Sprint Data Fetcher Agent',
+   sd:'Pulls all sprint data from JIRA for the current sprint and the previous several sprints — ticket counts, story points planned and completed, statuses, and assignees.',
+   tagline:'Sprint analysis requires historical data — not just the current sprint but how it compares to the ones before it. This agent fetches data for the current sprint and the previous three to five completed sprints. For each sprint it collects: how many story points were planned, how many were completed, the status of every ticket, who each ticket was assigned to, and when tickets were started and finished. This gives the analysis agents enough history to find genuine trends rather than one-off events.',
+   inp:['JIRA project and sprint range configuration'],out:['Structured data for the current and previous sprints — story points, ticket statuses, assignees, dates'],
+   steps:[{n:'1',name:'Connect to JIRA',desc:'Uses the shared JIRA Data Puller Agent with sprint-specific configuration.'},{n:'2',name:'Fetch sprint history',desc:'Retrieves data for the current sprint and the previous three to five completed sprints.'},{n:'3',name:'Return structured data',desc:'Story points planned and completed per sprint, statuses, assignees, and dates.'}],
+   usedIn:['sprint']},
+  {id:'velocity-analyser',g:'other',color:'#2F78C4',name:'Velocity Analyser Agent',
+   sd:'Calculates the team\'s sprint velocity over recent cycles and identifies whether delivery performance is improving, declining, or consistent.',
+   tagline:'Velocity tells you whether the team is getting through roughly the work they plan each sprint, and whether that is getting better or worse. This agent calculates the completion rate for each sprint — the percentage of planned story points actually delivered — and looks at how that has moved across recent sprints. A team consistently delivering eighty percent is performing predictably. A team whose rate dropped from eighty to fifty percent in the last two sprints has a trend worth investigating.',
+   inp:['Multi-sprint data from Sprint Data Fetcher'],out:['Velocity trend — completion rate per sprint and direction of change'],
+   steps:[{n:'1',name:'Calculate velocity per sprint',desc:'Story points completed divided by story points planned gives the completion rate.'},{n:'2',name:'Identify the trend',desc:'Is velocity improving, declining, or stable across recent sprints?'},{n:'3',name:'Flag anomalies',desc:'Highlights sprints significantly lower than the recent average.'}],
+   usedIn:['sprint']},
+  {id:'blocker-detector',g:'other',color:'#2F78C4',name:'Blocker Detector Agent',
+   sd:'Finds every ticket that has been in progress or blocked for longer than expected, with the ticket details, how long it has been waiting, and who currently owns it.',
+   tagline:'In any sprint, tickets slow down without anyone formally flagging them as blocked. They just sit in the in-progress column, day after day. This agent identifies those tickets systematically — scanning every ticket, checking how long it has been in its current status, and flagging anything that has exceeded the configured threshold. The output is a list ready for a standup or retrospective, with enough detail to immediately understand who needs to be asked about the delay.',
+   inp:['Sprint ticket data including status history and timestamps'],out:['List of delayed tickets — each with ID, current status, days in that status, and current assignee'],
+   steps:[{n:'1',name:'Check the age of each ticket',desc:'For every in-progress or blocked ticket, calculates how long it has been in that state.'},{n:'2',name:'Flag tickets over threshold',desc:'Marks anything older than the configured number of days.'},{n:'3',name:'Produce the blocker list',desc:'Returns ticket ID, current status, age, and assignee for each flagged item.'}],
+   usedIn:['sprint']},
+  {id:'pattern-agent',g:'other',color:'#2F78C4',name:'Pattern Recognition Agent',
+   sd:'Looks across multiple sprints to identify recurring issues — modules that consistently run late, ticket types that always overrun, or workload imbalances in the team.',
+   tagline:'Individual sprint data tells you what happened in that sprint. Data across multiple sprints tells you what consistently happens — which is far more useful. This agent analyses the full sprint history to find patterns. Are tickets in a particular module always the ones that overrun? Is a specific type of Change Request always taking twice as long as estimated? Does one team member consistently end up with a disproportionate share of delayed tickets? These patterns only become clear when you look across many sprints, and they give the team something concrete to address.',
+   inp:['Multi-sprint data from Sprint Data Fetcher'],out:['Recurring patterns — which modules, ticket types, or team members appear consistently in delays'],
+   steps:[{n:'1',name:'Analyse across all sprints',desc:'Looks at the full dataset across the retrieved sprint history.'},{n:'2',name:'Group and compare',desc:'Groups tickets by module, type, and assignee, and compares delay rates.'},{n:'3',name:'Surface the patterns',desc:'Identifies which groups consistently appear in delays and passes findings forward.'}],
+   usedIn:['sprint']},
+  {id:'insight-summariser',g:'other',color:'#2F78C4',name:'Insight Summariser Agent',
+   sd:'Takes all the analysis and writes it as a set of clear, specific, plain-English observations a manager can read and discuss without any preparation.',
+   tagline:'Analysis agents produce data and findings. This agent turns those findings into something immediately useful. It reads through the velocity analysis, the blocker list, and the pattern findings, and writes five to eight specific observations in plain language. Not "velocity declined" but "the team completed 61 percent of planned story points this sprint, compared to 78 percent in the previous two sprints — three tickets in the billing module all exceeded five days in progress." Specific, factual, and ready to discuss.',
+   inp:['Velocity trend','Blocker list','Patterns from Pattern Recognition'],out:['Five to eight plain-English insight statements ready for a sprint review'],
+   steps:[{n:'1',name:'Gather all findings',desc:'Collects outputs from Velocity Analyser, Blocker Detector, and Pattern Recognition Agent.'},{n:'2',name:'Write plain-English observations',desc:'For each significant finding, one clear statement describing what happened and what it means.'},{n:'3',name:'Pass to Report Generator',desc:'Insight statements passed to the Report Generator.'}],
+   usedIn:['sprint']},
+  {id:'report-gen',g:'other',color:'#2F78C4',name:'Report Generator Agent',
+   sd:'Produces a formatted report bringing together the charts, data, and plain-English findings from the analysis pipeline into a single shareable document.',
+   tagline:'The final step in both Sprint Analysis and Defect Identification. At this point all the analysis is complete and all the findings are written. This agent formats everything into a document — charts, data tables, and the plain-English insight statements. For Sprint Analysis that means a velocity trend chart, blocker summary, and insights. For Defect Identification it means a root cause breakdown, CR impact summary, and trend findings. A complete, professional document ready to share without any further work.',
+   inp:['Analysis outputs and insight statements from preceding agents'],out:['Formatted Excel or PowerPoint report with charts, tables, and findings'],
+   steps:[{n:'1',name:'Collect all analysis',desc:'Gathers all outputs from the pipeline.'},{n:'2',name:'Build charts and tables',desc:'Trend charts, frequency tables, and heatmaps from the data.'},{n:'3',name:'Assemble the report',desc:'Charts, tables, and insight text combined into a clean formatted document.'}],
+   usedIn:['sprint','defect']},
+  {id:'defect-fetcher',g:'other',color:'#9333EA',name:'Defect Fetcher Agent',
+   sd:'Pulls all defect and Production Defect Incident tickets from JIRA for the specified scope, retrieving the full details of each one.',
+   tagline:'Defect analysis starts with having all the defect tickets in front of you. This agent retrieves every defect and PDI ticket within the configured scope — a sprint, a release, a project, or a date range. For each ticket it retrieves the full content: the description, current status, affected component, when it was raised, and linked tickets. This complete dataset is handed to the RCA Classifier to begin the analysis.',
+   inp:['JIRA project filters and date or sprint range'],out:['All defect and PDI tickets within scope, with full details for each'],
+   steps:[{n:'1',name:'Connect via JIRA Data Puller',desc:'Uses the shared JIRA Data Puller with defect-specific filter configuration.'},{n:'2',name:'Retrieve defect tickets',desc:'Pulls PDI and defect tickets with description, status, component, date raised, and linked tickets.'},{n:'3',name:'Return the complete list',desc:'All defect tickets structured and ready for the RCA Classifier.'}],
+   usedIn:['defect']},
+  {id:'rca-classifier',g:'other',color:'#9333EA',name:'RCA Classifier Agent',
+   sd:'Reads through each defect ticket and assigns the most likely root cause category — requirement gap, code defect, environment issue, or test data problem.',
+   tagline:'After every defect is raised, someone needs to categorise it by root cause so the team understands what type of problem it is. Was the requirement not described correctly? Was the code written incorrectly? Was the test environment misconfigured? Was the test data not representative? This classification is currently done manually. This agent automates that process using the same RCA taxonomy the team uses in existing PDI analysis work.',
+   inp:['Defect ticket list from Defect Fetcher'],out:['The defect list with a root cause category assigned to each ticket'],
+   steps:[{n:'1',name:'Read each defect',desc:'Takes the full content of each ticket.'},{n:'2',name:'Assign root cause category',desc:'Classifies as: Requirement Gap, Code Defect, Environment Issue, Test Data Problem, or Configuration Error.'},{n:'3',name:'Pass the labelled list forward',desc:'Defect list with root cause labels passed to the CR Linker Agent.'}],
+   usedIn:['defect']},
+  {id:'cr-linker',g:'other',color:'#9333EA',name:'CR Linker Agent',
+   sd:'Traces each defect back to the Change Request that most likely introduced it, using JIRA links, affected component information, and the ticket content.',
+   tagline:'Knowing a defect occurred is useful. Knowing which Change Request caused it is far more useful — it tells you which work introduced the problem and which test scenarios were insufficient to catch it. This agent traces that connection for each defect. It first checks whether the defect ticket has a direct JIRA link to a CR. If not, it uses the affected component, module, and ticket descriptions to identify the most likely source CR.',
+   inp:['Root-cause-classified defect list'],out:['Defect list with each ticket linked to its most likely source Change Request'],
+   steps:[{n:'1',name:'Check for direct JIRA links',desc:'Looks at the linked issues field for a direct connection to a Change Request.'},{n:'2',name:'Match by component if no direct link',desc:'Uses affected module and ticket descriptions to identify the most likely source CR.'},{n:'3',name:'Assign the CR link',desc:'Adds the source Change Request ID to each defect record.'}],
+   usedIn:['defect']},
+  {id:'impact-assessor',g:'other',color:'#9333EA',name:'Impact Assessor Agent',
+   sd:'For each defect, maps which other parts of the system share the affected area and identifies which test cases should be re-run as a result.',
+   tagline:'When a defect is found, the question is: what else might be broken? A problem in one module often affects other modules that depend on it or share its code path. This agent takes each defect and its source CR and works out the wider impact — which other modules share the affected area, and which test cases covering those modules should therefore be re-run to verify they are still passing.',
+   inp:['Defects with root cause categories and source CR links'],out:['Impact map for each defect — affected modules and test cases to re-run'],
+   steps:[{n:'1',name:'Identify the affected area',desc:'Takes the defect and source CR to understand which part of the system is involved.'},{n:'2',name:'Map connected modules',desc:'Identifies other modules that share dependencies with the affected area.'},{n:'3',name:'Flag test cases for re-verification',desc:'Lists test cases covering the impacted modules that should be re-run.'}],
+   usedIn:['defect']},
+  {id:'trend-analyser',g:'other',color:'#9333EA',name:'Trend Analyser Agent',
+   sd:'Analyses all the defects together to identify recurring patterns — which CRs generate the most defects, which modules are most defect-prone, which root cause types keep repeating.',
+   tagline:'Looking at all defects together tells you about the team\'s process and the system\'s weak points. This agent analyses the full defect dataset to find patterns. Are forty percent of defects root-caused as Requirement Gaps? That suggests the requirements process needs attention. Is one module appearing in a disproportionate number of defects release after release? It warrants focused investigation. These are findings that drive meaningful process improvement.',
+   inp:['Complete labelled and linked defect dataset'],out:['Trend findings — which root cause types, CR types, and modules are generating the most defects'],
+   steps:[{n:'1',name:'Group by category',desc:'Groups defects by root cause type, source CR, module, and sprint.'},{n:'2',name:'Compare frequencies',desc:'Identifies which groups have the highest counts and whether any patterns recur across releases.'},{n:'3',name:'Surface the findings',desc:'Produces trend observations for the Defect Report Agent.'}],
+   usedIn:['defect']},
+  {id:'defect-report',g:'other',color:'#9333EA',name:'Defect Report Agent',
+   sd:'Produces the final defect analysis report — a structured document with a root cause breakdown, CR impact summary, affected module map, and recurring trend highlights.',
+   tagline:'The finisher for Defect Identification. Takes every output from the preceding agents and assembles a single structured report — formatted in the same style as the Excel-based defect analysis documents the team currently produces manually after each PDI review cycle. Root cause table, CR impact summary, module breakdown, and a trend section highlighting patterns across the release cycle. The QA lead receives a complete analysis document rather than raw data.',
+   inp:['All Defect Identification pipeline outputs'],out:['Complete defect analysis report — root cause table, CR impact summary, module breakdown, and trend highlights'],
+   steps:[{n:'1',name:'Compile all findings',desc:'Root cause classifications, CR links, impact maps, and trend patterns.'},{n:'2',name:'Build the report structure',desc:'Root cause table, CR impact summary, module defect count, and trend section.'},{n:'3',name:'Produce the final document',desc:'Complete Excel report ready for the QA lead and stakeholders.'}],
+   usedIn:['defect']},
+];
+
+
+const SC={active:{cls:'t-active',l:'In Progress'},planned:{cls:'t-planned',l:'Planned'},exploring:{cls:'t-exploring',l:'Exploring'},pipeline:{cls:'t-pipeline',l:'In Pipeline'}};
+let curTab='activities', curFilter='all';
+
+const ACT_FILTERS=[
+  {v:'all',l:'All (7)'},
+  {v:'p1',l:'Test Case Generation'},
+  {v:'p2',l:'Test Data Generation'},
+  {v:'p3',l:'Automation Scripts'},
+  {v:'dsr',l:'DSR Reports'},
+  {v:'mom',l:'Minutes of Meeting'},
+  {v:'sprint',l:'Sprint Analysis'},
+  {v:'defect',l:'Defect Identification'},
+];
+const AG_FILTERS=[
+  {v:'all',l:'All (18)'},
+  {v:'p1',l:'Test Case Pipeline'},
+  {v:'p2',l:'Test Data Pipeline'},
+  {v:'p3',l:'Automation Pipeline'},
+  {v:'uc',l:'Use Case Agents'},
+];
+
+// Confirmed agent IDs — signed off by team
+const CONFIRMED_IDS = new Set([
+  'jira-connector','tc-generator',
+  'tc-reader','db-lookup','xml-builder','eai-push','data-validator',
+  'script-generator',
+  'jira-puller','email-dispatch','sprint-fetcher','blocker-detector',
+  'defect-fetcher','rca-classifier','cr-linker','impact-assessor','trend-analyser','defect-report'
+]);
+
+// Filter groups for confirmed agents tab
+const AG_GROUP_MAP = {
+  'jira-connector':'p1','tc-generator':'p1',
+  'tc-reader':'p2','db-lookup':'p2','xml-builder':'p2','eai-push':'p2','data-validator':'p2',
+  'script-generator':'p3',
+  'jira-puller':'uc','email-dispatch':'uc','sprint-fetcher':'uc','blocker-detector':'uc',
+  'defect-fetcher':'uc','rca-classifier':'uc','cr-linker':'uc','impact-assessor':'uc','trend-analyser':'uc','defect-report':'uc'
+};
+
+function switchTab(t,btn){
+  curTab=t; curFilter='all';
+  document.querySelectorAll('.tab').forEach((b,i)=>b.classList.toggle('active',(i===0&&t==='activities')||(i===1&&t==='agents')));
+  render();
+}
+
+function setFilter(v){
+  curFilter=v; render();
+}
+
+function render(){
+  const fr=document.getElementById('filterRow');
+  fr.innerHTML='';
+  const filters=curTab==='activities'?ACT_FILTERS:AG_FILTERS;
+  filters.forEach(f=>{
+    const b=document.createElement('button');
+    b.className='chip'+(curFilter===f.v?' active':'');
+    b.textContent=f.l;
+    b.onclick=()=>setFilter(f.v);
+    fr.appendChild(b);
+  });
+
+  const grid=document.getElementById('grid');
+  grid.innerHTML='';
+
+  if(curTab==='activities'){
+    const list=curFilter==='all'?UC:UC.filter(u=>u.g===curFilter);
+    document.getElementById('cTitle').textContent='Activities & Use Cases';
+    document.getElementById('cSub').textContent=list.length+' use case'+(list.length!==1?'s':'')+' · GenC AI Council';
+    list.forEach((uc,i)=>{
+      const c=document.createElement('div');
+      c.className='card';
+      c.style.animationDelay=(i*.04)+'s';
+      const s=SC[uc.status];
+      c.innerHTML=`<div class="card-bar" style="background:${uc.color}"></div>
+        <div class="card-name">${uc.name}</div>
+        <div class="card-desc">${uc.sd}</div>
+        <div class="card-foot">
+          <div class="tags"><span class="tag ${s.cls}">${s.l}</span><span class="tag-plain">${uc.agents.length} agents</span></div>
+          <span class="card-arrow">&#x2192;</span>
+        </div>`;
+      c.onclick=()=>openUC(uc);
+      grid.appendChild(c);
+    });
+  } else {
+    const confirmed=AG.filter(a=>CONFIRMED_IDS.has(a.id));
+    const list=curFilter==='all'?confirmed:confirmed.filter(a=>AG_GROUP_MAP[a.id]===curFilter);
+    const groupLabel={'p1':'Test Case Pipeline','p2':'Test Data Pipeline','p3':'Automation Pipeline','uc':'Use Case Agent'};
+    document.getElementById('cTitle').textContent='Agents';
+    document.getElementById('cSub').textContent=list.length+' agents · click any to see input, output and how it works';
+    list.forEach((ag,i)=>{
+      const c=document.createElement('div');
+      c.className='card';
+      c.style.animationDelay=(i*.03)+'s';
+      const u=ag.usedIn?ag.usedIn.length:0;
+      const grp=AG_GROUP_MAP[ag.id]||'';
+      c.innerHTML=`<div class="card-bar" style="background:${ag.color}"></div>
+        <div style="font-size:9.5px;font-weight:700;color:${ag.color};text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;margin-top:4px">${groupLabel[grp]||''}</div>
+        <div class="card-name">${ag.name}</div>
+        <div class="card-desc">${ag.sd}</div>
+        <div class="card-foot">
+          <div class="tags">${u>1?`<span class="tag t-shared">Shared ×${u}</span>`:`<span class="tag-plain">1 use case</span>`}</div>
+          <span class="card-arrow">&#x2192;</span>
+        </div>`;
+      c.onclick=()=>openAG(ag);
+      grid.appendChild(c);
+    });
+  }
+}
+
+function openUC(uc){
+  document.getElementById('dType').textContent='Use Case';
+  document.getElementById('dTitle').textContent=uc.name;
+  document.getElementById('dDesc').textContent=uc.tagline;
+  const s=SC[uc.status];
+  let b=`<div class="d-sec">
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:16px">
+      <span class="tag ${s.cls}">${s.l}</span>
+      <span class="tag-plain">${uc.agents.length} agents involved</span>
+    </div>
+  </div>`;
+  b+=`<div class="d-sec"><div class="d-label">What this produces</div><div class="out-box">${uc.out}</div></div>`;
+  b+=`<div class="d-sec"><div class="d-label">Agents in this pipeline</div><div class="uca-list">`;
+  uc.agents.forEach((id,idx)=>{
+    const ag=AG.find(a=>a.id===id);if(!ag)return;
+    const shared=uc.shared&&uc.shared.includes(id);
+    b+=`<div class="uca" onclick="openAG(AG.find(a=>a.id==='${id}'))">
+      <div class="uca-num" style="background:${ag.color}">${idx+1}</div>
+      <div style="flex:1">
+        <div class="uca-name">${ag.name}${shared?' <span class="tag t-shared" style="font-size:9px;vertical-align:middle">Shared</span>':''}</div>
+        <div class="uca-sd">${ag.sd}</div>
+      </div>
+      <span class="uca-arrow">&#x2192;</span>
+    </div>`;
+  });
+  b+=`</div></div>`;
+  document.getElementById('dBody').innerHTML=b;
+  document.getElementById('overlay').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+
+function openAG(ag){
+  if(!ag)return;
+  const groupLabel={core:'Core Orchestrators',p1:'Pipeline 1 — Test Case Generation',p2:'Pipeline 2 — Test Data Generation',p3:'Pipeline 3 — Automation Scripts',other:'Support Agents'};
+  document.getElementById('dType').textContent=groupLabel[ag.g]||ag.g;
+  document.getElementById('dTitle').textContent=ag.name;
+  document.getElementById('dDesc').textContent=ag.tagline;
+  let b=`<div class="io-grid">
+    <div class="io-box"><div class="io-box-label">Input</div>${ag.inp.map(x=>`<div class="io-item in">${x}</div>`).join('')}</div>
+    <div class="io-box"><div class="io-box-label">Output</div>${ag.out.map(x=>`<div class="io-item out">${x}</div>`).join('')}</div>
+  </div>`;
+  b+=`<div class="d-sec"><div class="d-label">How it works</div><div class="steps">`;
+  ag.steps.forEach(s=>{
+    b+=`<div class="step"><div class="step-n ${s.sp?'sp':''}">${s.n}</div><div><div class="step-name">${s.name}</div><div class="step-desc">${s.desc}</div></div></div>`;
+  });
+  b+=`</div></div>`;
+  if(ag.usedIn&&ag.usedIn.length>0){
+    const label=ag.usedIn.length>1?`Shared across ${ag.usedIn.length} use cases`:'Used in one use case';
+    b+=`<div class="d-sec"><div class="d-label">${label}</div><div class="used-chips">`;
+    ag.usedIn.forEach(id=>{
+      const uc=UC.find(u=>u.id===id);
+      if(uc)b+=`<div class="used-chip" onclick="openUC(UC.find(u=>u.id==='${id}'))">${uc.name}</div>`;
+    });
+    b+=`</div></div>`;
+  }
+  document.getElementById('dBody').innerHTML=b;
+  document.getElementById('overlay').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+
+function closeDrawer(){document.getElementById('overlay').classList.remove('open');document.body.style.overflow='';}
+function maybeClose(e){if(e.target===document.getElementById('overlay'))closeDrawer();}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeDrawer();});
+
+render();
+</script>
+</body>
+</html>
