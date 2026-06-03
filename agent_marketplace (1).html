@@ -76,6 +76,11 @@ main{max-width:1200px;margin:0 auto;padding:32px 28px}
 .d-header{padding:20px 22px 16px;border-bottom:1px solid var(--border)}
 .d-close{float:right;width:26px;height:26px;border-radius:6px;background:var(--bg);border:none;cursor:pointer;font-size:13px;color:var(--muted);display:flex;align-items:center;justify-content:center;transition:all .15s}
 .d-close:hover{background:#FFE5E5;color:var(--red)}
+.d-back{background:none;border:none;cursor:pointer;font-size:12px;font-weight:600;color:var(--teal-d);font-family:'DM Sans',sans-serif;padding:4px 8px;border-radius:6px;transition:all .15s;display:flex;align-items:center;gap:4px}
+.d-back:hover{background:var(--teal-bg)}
+.d-breadcrumb{font-size:10.5px;color:var(--muted);margin-bottom:6px;min-height:14px}
+.d-breadcrumb span{color:var(--teal-d);cursor:pointer}
+.d-breadcrumb span:hover{text-decoration:underline}
 .d-type{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;display:block}
 .d-title{font-size:17px;font-weight:700;color:var(--navy);line-height:1.35;margin-bottom:8px}
 .d-desc{font-size:12.5px;color:var(--muted);line-height:1.65}
@@ -146,7 +151,12 @@ main{max-width:1200px;margin:0 auto;padding:32px 28px}
 <div class="overlay" id="overlay" onclick="maybeClose(event)">
   <div class="drawer" id="drawer">
     <div class="d-header">
-      <button class="d-close" onclick="closeDrawer()">&#x2715;</button>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <button class="d-back" id="dBack" onclick="navBack()" style="display:none">&#x2190; Back</button>
+        <div style="flex:1"></div>
+        <button class="d-close" onclick="closeDrawer()">&#x2715;</button>
+      </div>
+      <div class="d-breadcrumb" id="dBreadcrumb"></div>
       <span class="d-type" id="dType"></span>
       <div class="d-title" id="dTitle"></div>
       <div class="d-desc" id="dDesc"></div>
@@ -158,29 +168,34 @@ main{max-width:1200px;margin:0 auto;padding:32px 28px}
 <script>
 const UC=[
   {id:'tc-gen',g:'p1',color:'#2E308E',name:'Requirement to Test Case Generation',
-   sd:'Every time a Change Request is raised in JIRA, a QA engineer has to read it, understand the scope, and manually write test cases from scratch. This use case automates that entire process.',
+   sd:'Reads a JIRA Change Request, generates a complete Test Plan with all test cases, and uploads it back to JIRA — ready for the Test Data pipeline to pick up.',
    status:'active',
-   tagline:'When a developer raises a Change Request describing a new feature or a system change, a QA engineer must read through it, understand what needs to be tested, look at how similar things were tested in the past, write out every test scenario step by step, get it reviewed by a senior designer, and then format it into the team\'s standard Excel template. This whole process takes between one and seven days per CR, depending on the complexity. This pipeline does all of that automatically. The agent reads the CR, understands what changed, looks up how the team has tested similar things before, drafts the test cases in the same format and style the designer prefers, puts it through a quality check, presents it to the designer for a final look, and produces the finished Excel file — ready to hand to the testing team.',
-   agents:['master-orch','pipeline-orch','jira-connector','cr-summarizer','rag-retrieval','designer-memory','tc-generator','quality-reviewer','designer-feedback','parser-formatter'],
-   out:'A structured Excel file containing all test cases for the Change Request, each with a test ID, module, scenario description, step-by-step test steps, expected result, priority level, and test type.',
+   tagline:'When a developer raises a Change Request in JIRA, this pipeline kicks off automatically. It reads the CR, understands what changed, looks up how the team has tested similar things before, drafts the test cases in the designer\'s preferred format and style, runs a quality check, gets the designer\'s sign-off, and uploads the final Test Plan — an Excel file containing all test cases — directly back to the JIRA ticket. That uploaded Test Plan is then the starting point for the Test Data Generation pipeline.',
+   agents:['master-orch','pipeline-orch','jira-connector','cr-summarizer','rag-retrieval','designer-memory','tc-generator','quality-reviewer','designer-feedback','parser-formatter','jira-writer'],
+   out:'Test Plan (Excel file with all test cases) uploaded directly to the JIRA Change Request — ready for the Test Data Generation pipeline to pick up.',
    shared:['jira-connector','master-orch','pipeline-orch']},
-
   {id:'td-gen',g:'p2',color:'#0AA8AC',name:'Test Data Generation',
-   sd:'Once test cases exist, a QA engineer still needs to find or create the actual data to run those tests — account numbers, SIM references, port numbers, credentials. This use case does that automatically.',
+   sd:'Picks up the Test Plan from JIRA, enriches every test case with real data credentials from the backend systems, and uploads the updated Test Plan back to JIRA.',
    status:'planned',
-   tagline:'A test case describes what to test and what steps to follow. But to actually run a test, you also need real data — a valid customer account number, a working MSISDN, a specific port number, dealer credentials. Today, a QA engineer has to either look these up manually in the backend systems or walk through the full customer creation flow on the DSP platform to generate them. This can take ten to fifteen minutes per test case. This pipeline reads the test case Excel produced by Pipeline 1, figures out what data each test case requires, queries the correct backend system to fetch real, valid values, creates the necessary customer records or account configurations where needed, confirms that the data is working, and writes all of it back into the same Excel file next to the corresponding test cases. The result is a single file that has both the test cases and the data needed to execute them.',
-   agents:['tc-reader','db-lookup','xml-builder','eai-push','data-validator','data-writer'],
-   out:'The same Excel file from Pipeline 1, now with all required test data filled in — account numbers, SIM references, port numbers, credentials, and order IDs — one row per test case, ready for a tester to execute immediately.',
+   tagline:'The Test Plan uploaded to JIRA by the previous pipeline is this pipeline\'s starting point. It reads the Test Plan directly from the JIRA ticket, works out what data each test case needs — MSISDNs, SIM references, port numbers, dealer credentials — queries the backend systems to fetch real, validated values, creates the necessary customer records where needed, confirms every piece of data is working, and writes it all back into the Test Plan. The updated Test Plan — now containing both test cases and all their data credentials — is then uploaded back to the same JIRA ticket, ready for the testing team to execute immediately.',
+   agents:['tc-reader','db-lookup','xml-builder','eai-push','data-validator','data-writer','jira-writer'],
+   out:'Updated Test Plan uploaded back to JIRA — same file now containing test cases and all live test data credentials, one row per test case, ready to execute.',
    shared:['pipeline-orch']},
+  {id:'defect',g:'defect',color:'#9333EA',name:'JIRA Defect Identification (PDI RCA)',
+   sd:'When defects are raised in JIRA, understanding where they came from, why they happened, and what else might be affected requires investigation. This use case automates that investigation process.',
+   status:'exploring',
+   tagline:'PDI tickets can be raised in JIRA or in HPSM (HP Service Manager), depending on where the incident was logged. This pipeline reads defect tickets from both systems, classifies the root cause of each one using the team\'s existing RCA taxonomy, traces each defect back to the Change Request that introduced it, assesses which other modules could be affected, and posts a detailed RCA analysis report back into both JIRA and HPSM — closing the loop from incident raised to root cause documented.',
+   agents:['hpsm-jira-fetcher','rca-analyser','rca-report-gen','ticket-writer'],
+   out:'Detailed RCA analysis report posted back to both JIRA and HPSM — root cause for each PDI, impact assessment, and pattern findings.',
+   shared:[]},
 
   {id:'auto-scripts',g:'p3',color:'#7373D8',name:'Automation Script Generation',
    sd:'For test cases that can be run by a machine rather than a human, this use case writes the automation code automatically — removing the need for an engineer to manually author Robot Framework scripts.',
    status:'planned',
    tagline:'Not every test case needs a human to run it. Many tests follow a predictable sequence of steps — open this screen, enter this value, click this button, check this result — which a script can repeat reliably hundreds of times without error or fatigue. Writing those scripts manually is time-consuming and requires a skilled automation engineer. This pipeline reads the completed test case and test data Excel from Pipeline 2, goes through each test case and decides whether it can realistically be automated, and then writes the Robot Framework script for every one that can. The scripts are written in small focused batches to maintain quality, each is checked for correctness, each is linked back to its test case ID in the Excel, and everything is packaged together into a single deliverable. Test cases that genuinely need a human — for example, ones requiring physical SIM insertion or visual UI judgment — are flagged clearly as manual.',
-   agents:['automability-checker','script-generator','syntax-validator','script-linker','output-packager'],
+   agents:['jira-connector','automability-checker','script-generator','path-resolver','syntax-validator','jira-writer','tester-feedback'],
    out:'A set of Robot Framework automation script files, one for each automatable test case, plus the final Excel file updated with a reference to each script. Everything packaged together and ready for the automation team to run.',
-   shared:['pipeline-orch','output-packager']},
-
+   shared:['jira-connector','jira-writer']},
   {id:'dsr',g:'dsr',color:'#1D9E5C',name:'Automating DSR Reports',
    sd:'Every working day, the team produces a Daily Status Report showing what was completed, what is in progress, and what is pending. This is currently done manually by pulling data from JIRA and filling in a PowerPoint template. This use case automates the entire process.',
    status:'pipeline',
@@ -188,7 +203,6 @@ const UC=[
    agents:['jira-puller','delta-calc','dsr-narrative','ppt-builder','email-dispatch'],
    out:'A completed Daily Status Report PowerPoint file with the current date, updated ticket counts, progress summary, and any highlights — sent automatically to the management distribution list.',
    shared:['jira-puller','ppt-builder','email-dispatch']},
-
   {id:'mom',g:'mom',color:'#DC2626',name:'Auto Generation of Minutes of Meeting',
    sd:'After every team meeting, someone has to write up the minutes — who attended, what was discussed, what decisions were made, and who is responsible for what. This use case does that automatically from a recording or from rough notes.',
    status:'pipeline',
@@ -196,22 +210,13 @@ const UC=[
    agents:['audio-ingestion','transcription','speaker-id','mom-extractor','mom-formatter','mom-review'],
    out:'A formatted minutes-of-meeting document covering attendees, a summary of each agenda item discussed, a list of decisions made, an action items table showing owner, task, and due date for each item, and any open questions — sent to all meeting attendees.',
    shared:['email-dispatch','mom-review']},
-
   {id:'sprint',g:'sprint',color:'#2F78C4',name:'JIRA Sprint and Ticket Analysis',
    sd:'At the end of each sprint, the team needs to understand how the sprint went — how much was completed versus planned, what got stuck, and whether there are patterns worth addressing. This use case generates that analysis automatically.',
    status:'exploring',
    tagline:'Sprint reviews and retrospectives require someone to pull data from JIRA, calculate how many story points were completed versus what was planned, identify which tickets were delayed and for how long, and spot whether the same types of issues keep coming up sprint after sprint. Doing this manually takes time and often gets skipped or done superficially. This pipeline pulls sprint data from JIRA covering the current and previous sprints, calculates the team\'s velocity and whether it is trending up or down, identifies every ticket that sat in progress for longer than expected, looks across multiple sprints to find recurring patterns — modules that always run late, ticket types that consistently overrun, team members who are carrying a disproportionate load — and produces a clear, readable report with charts and a set of plain-English findings that can be discussed in the sprint review without anyone needing to prepare slides in advance.',
    agents:['sprint-fetcher','velocity-analyser','blocker-detector','pattern-agent','insight-summariser','report-gen'],
    out:'A sprint analysis report showing velocity over recent sprints, a list of tickets that were delayed with the cause and owner, recurring patterns identified across sprints, and five to eight plain-English findings ready for a sprint review discussion.',
-   shared:['jira-puller','report-gen','ppt-builder']},
-
-  {id:'defect',g:'defect',color:'#9333EA',name:'JIRA Defect Identification',
-   sd:'When defects are raised in JIRA, understanding where they came from, why they happened, and what else might be affected requires investigation. This use case automates that investigation process.',
-   status:'exploring',
-   tagline:'When a defect or Production Defect Incident is raised, a QA engineer needs to read through the ticket, work out the most likely root cause, trace it back to the Change Request that probably introduced the problem, assess which other parts of the system might be affected, and decide which test cases need to be re-run as a result. Across a release cycle with many defects, this analysis takes significant time and is often done under pressure. This pipeline reads all defect tickets for the configured scope, classifies the root cause of each one — whether it was a gap in the requirements, a coding error, an environment configuration issue, or a test data problem — identifies which Change Request most likely introduced each defect, maps out which other modules share the affected code area and could also be impacted, and looks across all the defects together to surface recurring patterns. If the same type of defect keeps appearing from a particular module or type of change, that pattern is highlighted so the team can address the underlying cause rather than fixing individual instances repeatedly.',
-   agents:['defect-fetcher','rca-classifier','cr-linker','impact-assessor','trend-analyser','defect-report'],
-   out:'A defect analysis report with each defect classified by root cause, linked to its source Change Request, mapped against affected modules and test cases to re-verify, and a trend section showing which root cause types and source areas are recurring across the release cycle.',
-   shared:['jira-puller','report-gen','rca-classifier']},
+   shared:['jira-puller','report-gen','ppt-builder']}
 ];
 
 const AG=[
@@ -232,7 +237,7 @@ const AG=[
    tagline:'When a Change Request is created in JIRA, it contains everything a developer or analyst wrote about the change — what is being built, what the business rules are, what the acceptance conditions are, what other tickets it is related to. This agent connects to JIRA, pulls all of that content for a given CR number, and converts it from raw JIRA data into a clean, structured format that the next agent can work with. It is the entry point to the entire test case generation pipeline — without this agent retrieving the CR content, no other agent has anything to work from.',
    inp:['Change Request number','JIRA login credentials'],out:['All CR fields extracted and structured'],
    steps:[{n:'1',name:'Connect to JIRA',desc:'Authenticates with the JIRA instance.'},{n:'2',name:'Pull all CR fields',desc:'Retrieves the full content — summary, description, requirements, acceptance criteria, linked tickets, and attachments.'},{n:'3',name:'Structure the output',desc:'Converts the raw JIRA response into a clean format ready for the Summarizer Agent.'}],
-   usedIn:['tc-gen']},
+   usedIn:['tc-gen','auto-scripts']},
   {id:'cr-summarizer',g:'p1',color:'#2E308E',name:'CR Summarizer Agent',
    sd:'Reads through the full Change Request and distils it into a focused summary containing only what a test writer needs — the scope, the business rules, and the conditions that require testing.',
    tagline:'A Change Request is written for developers and project managers, not test designers. It typically contains version history, approval trails, background context, and a lot of content that is not directly relevant to writing test cases. Passing all of that raw content to the generator would lead to unfocused output. This agent reads through everything and extracts only the parts that matter for testing: which parts of the system are changing, what the specific business rules are, what conditions need to be met, what the edge cases are, and what the acceptance criteria say.',
@@ -329,13 +334,13 @@ const AG=[
    inp:['Draft Robot Framework scripts from Generator'],out:['Verified error-free scripts, or specific issues flagged for human review'],
    steps:[{n:'1',name:'Receive each batch of scripts',desc:'Gets the scripts from the Generator Agent.'},{n:'2',name:'Check structure and keywords',desc:'Verifies correct syntax, keyword usage, variable definitions, and test data references.'},{n:'3',name:'Correct or flag issues',desc:'Fixes simple errors automatically. Flags anything more complex for human attention.'}],
    usedIn:['auto-scripts']},
-  {id:'script-linker',g:'p3',color:'#7373D8',name:'Script Linker Agent',
+  {id:'script-linker',g:'other',color:'#7373D8',name:'Script Linker Agent',
    sd:'Updates the Excel file so that every test case row contains a reference to the script file that covers it — creating a traceable link from test case to automation code.',
    tagline:'Once all scripts are validated, this agent connects them to their corresponding test cases in the Excel. It goes through each script, identifies its test case ID, and adds the script file path as a reference in the correct row. Anyone looking at the Excel can immediately see which test cases have automation scripts and can find the correct file without searching through folders. Full traceability from the original requirement, through the test case, to the automation code.',
    inp:['Validated scripts','Complete Excel with test cases and data'],out:['Excel updated with script file reference in each automatable test case row'],
    steps:[{n:'1',name:'Match each script to its test case',desc:'Identifies which test case ID each script corresponds to.'},{n:'2',name:'Update the Excel',desc:'Adds the script file path into the correct row.'}],
-   usedIn:['auto-scripts']},
-  {id:'output-packager',g:'p3',color:'#7373D8',name:'Output Packager Agent',
+   usedIn:[]},
+  {id:'output-packager',g:'other',color:'#7373D8',name:'Output Packager Agent',
    sd:'Collects the final Excel file and all automation scripts, organises them into a clear structure, and produces the single deliverable the QA team takes away.',
    tagline:'At this point the Excel file has test cases, test data, and script references, and there is a set of Robot Framework files in various locations. This agent gathers everything together, organises the scripts into a sensible folder structure, checks all files are present and correctly named, and packages everything into one output. The QA team receives a single, clearly organised package — the Excel and the scripts — with everything needed to begin test execution immediately.',
    inp:['Updated Excel with all data and script references','All validated Robot Framework scripts'],out:['A complete organised package — the final Excel plus all automation script files'],
@@ -479,6 +484,46 @@ const AG=[
    inp:['All Defect Identification pipeline outputs'],out:['Complete defect analysis report — root cause table, CR impact summary, module breakdown, and trend highlights'],
    steps:[{n:'1',name:'Compile all findings',desc:'Root cause classifications, CR links, impact maps, and trend patterns.'},{n:'2',name:'Build the report structure',desc:'Root cause table, CR impact summary, module defect count, and trend section.'},{n:'3',name:'Produce the final document',desc:'Complete Excel report ready for the QA lead and stakeholders.'}],
    usedIn:['defect']},
+  {id:'hpsm-jira-fetcher',g:'other',color:'#9333EA',name:'JIRA / HPSM Fetcher Agent',
+   sd:'Reads the test cases and PDI document from the JIRA or HPSM ticket — whichever system the incident was logged in.',
+   tagline:'PDI incidents are raised in either JIRA or HPSM. This agent connects to both systems, reads the relevant ticket, and retrieves two things: the test cases associated with the Change Request, and the PDI document describing the defect. Both are passed together to the RCA Analyser so it has everything it needs in one place.',
+   inp:['JIRA or HPSM ticket reference'],out:['Test cases and PDI document extracted from the ticket'],
+   steps:[{n:'1',name:'Identify the source system',desc:'Determines whether the ticket is in JIRA or HPSM.'},{n:'2',name:'Connect and retrieve',desc:'Connects to the correct system and reads the full ticket — the PDI document and associated test cases.'},{n:'3',name:'Pass to RCA Analyser',desc:'Both the PDI doc and test cases are handed together to the next agent.'}],
+   usedIn:['defect']},
+  {id:'rca-analyser',g:'other',color:'#9333EA',name:'RCA Analyser Agent',
+   sd:'Cross-references the test cases and PDI document, identifies the root cause, assesses which modules are affected, and surfaces any recurring patterns.',
+   tagline:'This is where the analysis happens. The agent reads the PDI document and the associated test cases side by side — understanding what was being tested, what failed, and why. It classifies the root cause using the team\'s existing RCA taxonomy, identifies which other modules in the system share the affected area, and looks across all PDIs together to spot recurring patterns. All findings are compiled and passed to the report agent.',
+   inp:['Test cases and PDI document from JIRA / HPSM'],out:['Structured analysis findings — root cause, affected modules, patterns'],
+   steps:[{n:'1',name:'Read PDI doc and test cases together',desc:'Cross-references what was being tested against what actually failed.'},{n:'2',name:'Classify root cause',desc:'Assigns the RCA category: Requirement Gap, Code Defect, Environment Issue, Test Data Problem, or Configuration Error.'},{n:'3',name:'Assess impact',desc:'Identifies other modules that share the affected area and test cases that should be re-verified.'},{n:'4',name:'Find patterns',desc:'Looks across all PDIs in scope to identify recurring root causes or problem areas.'}],
+   usedIn:['defect']},
+  {id:'rca-report-gen',g:'other',color:'#9333EA',name:'RCA Report Generator Agent',
+   sd:'Produces the detailed RCA analysis report and posts it back to the original JIRA and HPSM ticket — closing the loop from incident to documented root cause.',
+   tagline:'Takes all the findings from the RCA Analyser and produces a structured, detailed report. The report is then posted directly back into the JIRA ticket and the HPSM ticket that started the process — so anyone who raised the incident can see the full root cause analysis, impact assessment, and pattern findings without leaving the system they work in.',
+   inp:['Structured analysis findings from RCA Analyser'],out:['Detailed RCA report posted back to JIRA and HPSM'],
+   steps:[{n:'1',name:'Structure the report',desc:'Organises the findings into a clear format: root cause, affected modules, test cases to re-verify, and pattern highlights.'},{n:'2',name:'Post to JIRA',desc:'Attaches the completed report to the originating JIRA ticket.'},{n:'3',name:'Post to HPSM',desc:'Attaches the same report to the HPSM ticket — both systems updated simultaneously.'}],
+   usedIn:['defect']},
+  {id:'ticket-writer',g:'other',color:'#0AA8AC',name:'JIRA / HPSM Writer Agent',
+   sd:'Posts the RCA analysis report back to both the originating JIRA ticket and the HPSM incident — closing the loop from defect raised to root cause documented.',
+   tagline:'Every pipeline in this system produces an output that needs to go somewhere. The Test Case Generation pipeline produces a Test Plan that should live on the JIRA ticket it was created for. The Test Data Generation pipeline produces an updated Test Plan that replaces the previous one on the same ticket. The PDI RCA pipeline produces a detailed analysis report that needs to be posted back to both the JIRA ticket and the HPSM incident. This single agent handles all of that. It receives the output file and the ticket reference, connects to the correct system, and attaches the file or posts it as a structured comment — so the full audit trail lives in the same place where the work was raised.',
+   inp:['Output file to post','JIRA or HPSM ticket reference','Target system (JIRA, HPSM, or both)'],
+   out:['File attached or comment posted on the specified JIRA and/or HPSM ticket'],
+   steps:[
+     {n:'1',name:'Receive the output and ticket reference',desc:'Gets the completed file and the ID of the ticket it should be posted to.'},
+     {n:'2',name:'Identify the target system',desc:'Determines whether to post to JIRA, HPSM, or both — based on where the original ticket was raised.'},
+     {n:'3',name:'Connect and post',desc:'Attaches the file to the ticket and adds a structured comment noting what was uploaded, the pipeline that produced it, and the timestamp.'}
+   ],
+   usedIn:['defect']},
+  {id:'jira-writer',g:'other',color:'#2F78C4',name:'JIRA Writer Agent',
+   sd:'Uploads the output file — Test Plan or updated Test Plan — directly to the originating JIRA ticket as an attachment.',
+   tagline:'Once the Test Plan is ready — whether it is freshly generated by Pipeline 1 or enriched with test data by Pipeline 2 — it needs to live on the JIRA ticket it was created for. This agent takes the completed file and attaches it to the correct JIRA ticket, adding a comment that notes what was uploaded, which pipeline produced it, and when. The ticket becomes the single source of truth for all test artefacts related to that Change Request.',
+   inp:['Completed Test Plan file','JIRA ticket reference'],
+   out:['Test Plan attached to the JIRA ticket with a timestamped comment'],
+   steps:[
+     {n:'1',name:'Receive the file and ticket reference',desc:'Gets the completed Test Plan and the ID of the JIRA ticket it belongs to.'},
+     {n:'2',name:'Connect to JIRA',desc:'Authenticates with the JIRA instance.'},
+     {n:'3',name:'Attach and comment',desc:'Uploads the file as an attachment and posts a structured comment: what was uploaded, which pipeline produced it, and the timestamp.'}
+   ],
+   usedIn:['tc-gen','td-gen','auto-scripts']}
 ];
 
 
@@ -489,11 +534,11 @@ const ACT_FILTERS=[
   {v:'all',l:'All (7)'},
   {v:'p1',l:'Test Case Generation'},
   {v:'p2',l:'Test Data Generation'},
+  {v:'defect',l:'PDI RCA'},
   {v:'p3',l:'Automation Scripts'},
   {v:'dsr',l:'DSR Reports'},
   {v:'mom',l:'Minutes of Meeting'},
   {v:'sprint',l:'Sprint Analysis'},
-  {v:'defect',l:'Defect Identification'},
 ];
 const AG_FILTERS=[
   {v:'all',l:'All (18)'},
@@ -501,6 +546,20 @@ const AG_FILTERS=[
   {v:'p2',l:'Test Data Pipeline'},
   {v:'p3',l:'Automation Pipeline'},
   {v:'uc',l:'Use Case Agents'},
+  {id:'path-resolver',g:'p3',color:'#7373D8',name:'Path Resolver Agent',
+   sd:'Reads the screen source code and page objects to replace script placeholders with real element locators and paths.',
+   tagline:'The Script Generator produces Robot Framework scripts with placeholder references — generic labels where real UI element paths need to go. This agent takes those placeholder scripts and the actual source code or page object files of the application being tested, reads through them to find the correct locator for each element referenced, and replaces every placeholder with the real path. The result is a complete, runnable script that references actual elements in the application rather than generic labels.',
+   inp:['Scripts with placeholders from Script Generator','Screen source code or page object files'],
+   out:['Complete scripts with real element locators replacing all placeholders'],
+   steps:[{n:'1',name:'Receive placeholder scripts',desc:'Gets the generated scripts from the Script Generator Agent.'},{n:'2',name:'Read screen source code',desc:'Loads the application source code or page object files to find real element locators.'},{n:'3',name:'Map and replace',desc:'Matches each placeholder to its correct element path and replaces it throughout the script.'},{n:'4',name:'Pass to Validator',desc:'Resolved scripts passed to Syntax Validator for checking.'}],
+   usedIn:['auto-scripts']},
+  {id:'tester-feedback',g:'p3',color:'#9333EA',name:'Tester Feedback Agent',
+   sd:'The tester runs the uploaded scripts — if they pass the pipeline is done, if they fail the agent captures the error and sends it back to the Script Generator to refine and improve.',
+   tagline:'Once scripts are uploaded to JIRA, the tester runs them against the application. This agent manages what happens next. If the scripts run successfully, the pipeline is complete and the result is recorded. If a script fails, the tester does not have to manually diagnose and rewrite it — the Tester Feedback Agent captures the exact failure details, sends them back to the Script Generator with the context needed to improve the script, and the cycle runs again. Over time the agent also builds a profile of the tester\'s feedback patterns so the Script Generator gets better at producing scripts that work first time.',
+   inp:['Script execution result from tester — pass or fail with error details'],
+   out:['Pipeline complete on pass, or refined script re-uploaded to JIRA on fail'],
+   steps:[{n:'1',name:'Receive execution result',desc:'Tester runs the scripts and the result — pass or fail — is fed back.'},{n:'2',name:'On pass — confirm complete',desc:'Pipeline marked complete. Result recorded.'},{n:'3',name:'On fail — capture and send back',desc:'Exact failure details captured and sent to Script Generator with instructions to refine.'},{n:'4',name:'Learn from feedback',desc:'Builds a profile of recurring failure types to improve script quality over time.'}],
+   usedIn:['auto-scripts']}
 ];
 
 // Confirmed agent IDs — signed off by team
@@ -509,7 +568,9 @@ const CONFIRMED_IDS = new Set([
   'tc-reader','db-lookup','xml-builder','eai-push','data-validator',
   'script-generator',
   'jira-puller','email-dispatch','sprint-fetcher','blocker-detector',
-  'defect-fetcher','rca-classifier','cr-linker','impact-assessor','trend-analyser','defect-report'
+  'hpsm-jira-fetcher','rca-analyser','rca-report-gen',
+  'ticket-writer','jira-writer',
+  'path-resolver','tester-feedback'
 ]);
 
 // Filter groups for confirmed agents tab
@@ -518,7 +579,9 @@ const AG_GROUP_MAP = {
   'tc-reader':'p2','db-lookup':'p2','xml-builder':'p2','eai-push':'p2','data-validator':'p2',
   'script-generator':'p3',
   'jira-puller':'uc','email-dispatch':'uc','sprint-fetcher':'uc','blocker-detector':'uc',
-  'defect-fetcher':'uc','rca-classifier':'uc','cr-linker':'uc','impact-assessor':'uc','trend-analyser':'uc','defect-report':'uc'
+  'hpsm-jira-fetcher':'uc','rca-analyser':'uc','rca-report-gen':'uc',
+  'ticket-writer':'uc','jira-writer':'uc',
+  'path-resolver':'p3','tester-feedback':'p3'
 };
 
 function switchTab(t,btn){
@@ -592,22 +655,23 @@ function render(){
 }
 
 function openUC(uc){
-  document.getElementById('dType').textContent='Use Case';
-  document.getElementById('dTitle').textContent=uc.name;
-  document.getElementById('dDesc').textContent=uc.tagline;
-  const s=SC[uc.status];
-  let b=`<div class="d-sec">
+  const render = () => {
+    document.getElementById('dType').textContent='Use Case';
+    document.getElementById('dTitle').textContent=uc.name;
+    document.getElementById('dDesc').textContent=uc.tagline;
+    const s=SC[uc.status];
+    let b=`<div class="d-sec">
     <div style="display:flex;gap:8px;align-items:center;margin-bottom:16px">
       <span class="tag ${s.cls}">${s.l}</span>
       <span class="tag-plain">${uc.agents.length} agents involved</span>
     </div>
   </div>`;
-  b+=`<div class="d-sec"><div class="d-label">What this produces</div><div class="out-box">${uc.out}</div></div>`;
-  b+=`<div class="d-sec"><div class="d-label">Agents in this pipeline</div><div class="uca-list">`;
-  uc.agents.forEach((id,idx)=>{
-    const ag=AG.find(a=>a.id===id);if(!ag)return;
-    const shared=uc.shared&&uc.shared.includes(id);
-    b+=`<div class="uca" onclick="openAG(AG.find(a=>a.id==='${id}'))">
+    b+=`<div class="d-sec"><div class="d-label">What this produces</div><div class="out-box">${uc.out}</div></div>`;
+    b+=`<div class="d-sec"><div class="d-label">Agents in this pipeline</div><div class="uca-list">`;
+    uc.agents.forEach((id,idx)=>{
+      const ag=AG.find(a=>a.id===id);if(!ag)return;
+      const shared=uc.shared&&uc.shared.includes(id);
+      b+=`<div class="uca" onclick="openAG(AG.find(a=>a.id==='${id}'))">
       <div class="uca-num" style="background:${ag.color}">${idx+1}</div>
       <div style="flex:1">
         <div class="uca-name">${ag.name}${shared?' <span class="tag t-shared" style="font-size:9px;vertical-align:middle">Shared</span>':''}</div>
@@ -615,45 +679,111 @@ function openUC(uc){
       </div>
       <span class="uca-arrow">&#x2192;</span>
     </div>`;
-  });
-  b+=`</div></div>`;
-  document.getElementById('dBody').innerHTML=b;
-  document.getElementById('overlay').classList.add('open');
-  document.body.style.overflow='hidden';
+    });
+    b+=`</div></div>`;
+    document.getElementById('dBody').innerHTML=b;
+  };
+
+  // Push to stack only if not already the top item
+  if (!navStack.length || navStack[navStack.length-1].id !== uc.id) {
+    navStack.push({ id: uc.id, title: uc.name, render });
+  }
+  render();
+  updateDrawerNav();
+  openDrawer();
 }
 
 function openAG(ag){
   if(!ag)return;
-  const groupLabel={core:'Core Orchestrators',p1:'Pipeline 1 — Test Case Generation',p2:'Pipeline 2 — Test Data Generation',p3:'Pipeline 3 — Automation Scripts',other:'Support Agents'};
-  document.getElementById('dType').textContent=groupLabel[ag.g]||ag.g;
-  document.getElementById('dTitle').textContent=ag.name;
-  document.getElementById('dDesc').textContent=ag.tagline;
-  let b=`<div class="io-grid">
-    <div class="io-box"><div class="io-box-label">Input</div>${ag.inp.map(x=>`<div class="io-item in">${x}</div>`).join('')}</div>
-    <div class="io-box"><div class="io-box-label">Output</div>${ag.out.map(x=>`<div class="io-item out">${x}</div>`).join('')}</div>
+  const render = () => {
+    const groupLabel={core:'Core Orchestrators',p1:'Pipeline 1 — Test Case Generation',p2:'Pipeline 2 — Test Data Generation',p3:'Pipeline 3 — Automation Scripts',other:'Support Agents'};
+    document.getElementById('dType').textContent=groupLabel[ag.g]||ag.g;
+    document.getElementById('dTitle').textContent=ag.name;
+    document.getElementById('dDesc').textContent=ag.tagline;
+    let b=`<div class="io-grid">
+    <div class="io-box"><div class="io-lbl">Input</div>${ag.inp.map(x=>`<div class="io-item in">${x}</div>`).join('')}</div>
+    <div class="io-box"><div class="io-lbl">Output</div>${ag.out.map(x=>`<div class="io-item out">${x}</div>`).join('')}</div>
   </div>`;
-  b+=`<div class="d-sec"><div class="d-label">How it works</div><div class="steps">`;
-  ag.steps.forEach(s=>{
-    b+=`<div class="step"><div class="step-n ${s.sp?'sp':''}">${s.n}</div><div><div class="step-name">${s.name}</div><div class="step-desc">${s.desc}</div></div></div>`;
-  });
-  b+=`</div></div>`;
-  if(ag.usedIn&&ag.usedIn.length>0){
-    const label=ag.usedIn.length>1?`Shared across ${ag.usedIn.length} use cases`:'Used in one use case';
-    b+=`<div class="d-sec"><div class="d-label">${label}</div><div class="used-chips">`;
-    ag.usedIn.forEach(id=>{
-      const uc=UC.find(u=>u.id===id);
-      if(uc)b+=`<div class="used-chip" onclick="openUC(UC.find(u=>u.id==='${id}'))">${uc.name}</div>`;
+    b+=`<div class="d-sec"><div class="d-lbl">How it works</div><div class="steps">`;
+    ag.steps.forEach(s=>{
+      b+=`<div class="step"><div class="step-n ${s.sp?'sp':''}">${s.n}</div><div><div class="step-name">${s.name}</div><div class="step-desc">${s.desc}</div></div></div>`;
     });
     b+=`</div></div>`;
+    if(ag.usedIn&&ag.usedIn.length>0){
+      const label=ag.usedIn.length>1?`Shared across ${ag.usedIn.length} use cases`:'Used in one use case';
+      b+=`<div class="d-sec"><div class="d-lbl">${label}</div><div class="used-chips">`;
+      ag.usedIn.forEach(id=>{
+        const uc=UC.find(u=>u.id===id);
+        if(uc)b+=`<div class="used-chip" onclick="openUC(UC.find(u=>u.id==='${id}'))">${uc.name}</div>`;
+      });
+      b+=`</div></div>`;
+    }
+    document.getElementById('dBody').innerHTML=b;
+  };
+  if(!navStack.length||navStack[navStack.length-1].id!==ag.id){
+    navStack.push({id:ag.id,title:ag.name,render});
   }
-  document.getElementById('dBody').innerHTML=b;
-  document.getElementById('overlay').classList.add('open');
-  document.body.style.overflow='hidden';
+  render();
+  updateDrawerNav();
+  openDrawer();
 }
 
-function closeDrawer(){document.getElementById('overlay').classList.remove('open');document.body.style.overflow='';}
-function maybeClose(e){if(e.target===document.getElementById('overlay'))closeDrawer();}
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeDrawer();});
+// ── NAVIGATION STACK ──
+let navStack = [];
+
+function updateDrawerNav() {
+  const backBtn = document.getElementById('dBack');
+  const breadcrumb = document.getElementById('dBreadcrumb');
+  if (navStack.length > 1) {
+    backBtn.style.display = 'flex';
+    const crumbs = navStack.map((s, i) => {
+      if (i < navStack.length - 1) {
+        return `<span onclick="navTo(${i})">${s.title}</span>`;
+      }
+      return `<span style="color:var(--muted);cursor:default">${s.title}</span>`;
+    }).join(' &rsaquo; ');
+    breadcrumb.innerHTML = crumbs;
+  } else {
+    backBtn.style.display = 'none';
+    breadcrumb.innerHTML = '';
+  }
+}
+
+function navBack() {
+  if (navStack.length > 1) {
+    navStack.pop();
+    const prev = navStack[navStack.length - 1];
+    prev.render();
+    updateDrawerNav();
+    document.getElementById('drawer').scrollTop = 0;
+  }
+}
+
+function navTo(idx) {
+  navStack = navStack.slice(0, idx + 1);
+  const target = navStack[navStack.length - 1];
+  target.render();
+  updateDrawerNav();
+  document.getElementById('drawer').scrollTop = 0;
+}
+
+function openDrawer() {
+  document.getElementById('overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  document.getElementById('drawer').scrollTop = 0;
+}
+
+function closeDrawer() {
+  document.getElementById('overlay').classList.remove('open');
+  document.body.style.overflow = '';
+  navStack = [];
+}
+
+function maybeClose(e) {
+  if (e.target === document.getElementById('overlay')) closeDrawer();
+}
+
+document.addEventListener('keydown', e => { if(e.key==='Escape') closeDrawer(); });
 
 render();
 </script>
