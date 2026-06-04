@@ -129,16 +129,15 @@ main{max-width:1200px;margin:0 auto;padding:32px 28px}
 
 <header>
   <div class="logo-text">AI Agent Marketplace</div>
-  <div class="phase-pill">Phase 1 · In Progress</div>
-</header>
+  </header>
 
 <main>
-  <div class="page-title" id="cTitle">Activities &amp; Use Cases</div>
-  <div class="page-sub" id="cSub">7 use cases &middot; GenC AI Council</div>
+  <div id="cTitle" style="display:none"></div>
+  <div id="cSub" style="display:none"></div>
 
   <div class="tab-row">
     <div class="tabs">
-      <button class="tab active" onclick="switchTab('activities',this)">Activities <span class="tab-count" id="tcAct">7</span></button>
+      <button class="tab active" onclick="switchTab('activities',this)">Use Cases <span class="tab-count" id="tcAct">7</span></button>
       <button class="tab" onclick="switchTab('agents',this)">Agents <span class="tab-count" id="tcAg">18 confirmed</span></button>
     </div>
   </div>
@@ -611,7 +610,7 @@ function render(){
 
   if(curTab==='activities'){
     const list=curFilter==='all'?UC:UC.filter(u=>u.g===curFilter);
-    document.getElementById('cTitle').textContent='Activities & Use Cases';
+    document.getElementById('cTitle').textContent='Use Cases';
     document.getElementById('cSub').textContent=list.length+' use case'+(list.length!==1?'s':'')+' · GenC AI Council';
     list.forEach((uc,i)=>{
       const c=document.createElement('div');
